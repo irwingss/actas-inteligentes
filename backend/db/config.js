@@ -90,6 +90,8 @@ const initDatabase = async () => {
       return db
     } catch (error) {
       console.error('Error initializing SQLite:', error)
+      initPromise = null // Allow retry on failure
+      initialized = false
       throw error
     }
   })()

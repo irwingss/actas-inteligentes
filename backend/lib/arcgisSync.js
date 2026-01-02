@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-import db, { query, run, get, ensureDb } from '../db/config.js';
+import db, { query, run, get, ensureDb, saveDatabase } from '../db/config.js';
 import { getQueryFieldNames } from '../config/fieldMapping.js';
 import { queryFeatures, getOidAndGlobalIdFields, listAttachments, downloadAttachment, fetchEnrichedRecords } from './arcgisClient.js';
 
@@ -50,7 +50,10 @@ function extractMappedFields(attributes) {
   const fieldNames = getQueryFieldNames();
 
   // Helper to safely get attribute by primary name
-  const getAttr = (key) => attributes[fieldNames[key]] || attributes[key];
+  const getAttr = (key) => {
+    const val = attributes[fieldNames[key]] || attributes[key];
+    return val === undefined ? null : val;
+  };
 
   return {
     // Layer 0 Fields
@@ -103,34 +106,15 @@ async function runMigration(migrationFile) {
       const migration = fs.readFileSync(migrationPath, 'utf8');
       
       try {
-        // Attempt 1: Execute entire file at once (faster, atomic-ish)
+        // Execute entire file at once
         database.exec(migration);
       } catch (execError) {
-        // Handle "duplicate column" errors for ALTER TABLE migrations
-        // This allows re-running migrations that were partially applied or fail on first statement
-        if (execError.message.includes('duplicate column name')) {
-          console.log(`[arcgisSync] ⚠️  Detectada columna duplicada en ${migrationFile}, intentando ejecución sentencia por sentencia...`);
-          
-          // Split by semicolon, clean up, and execute individually
-          const statements = migration
-            .split(';')
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
-            
-          for (const stmt of statements) {
-            try {
-              database.exec(stmt);
-            } catch (stmtError) {
-              if (stmtError.message.includes('duplicate column name')) {
-                // Ignore, column already exists
-                continue;
-              }
-              // Rethrow other errors (syntax, etc)
-              throw stmtError;
-            }
-          }
+        // Handle "duplicate column" errors for ALTER TABLE migrations (idempotency)
+        if (execError.message.includes('duplicate column name') || 
+            execError.message.includes('already exists')) {
+          console.log(`[arcgisSync] ℹ️  Migración ${migrationFile} parcialmente aplicada o columnas ya existen.`);
         } else {
-          // Rethrow if it's not a duplicate column error
+          console.error(`[arcgisSync] ❌ Error en migración ${migrationFile}:`, execError.message);
           throw execError;
         }
       }

@@ -29,12 +29,18 @@ console.log('[server] 📍 LAYER_URL:', process.env.LAYER_URL);
 
 // Importar inicializador de DB primero y esperar
 import { initDatabase, get } from './db/config.js'
+import { setupDatabase } from './db/setup.js'
 
 // Función principal async para inicializar todo
 const startServer = async () => {
   // Esperar a que la base de datos esté lista
   console.log('[server] ⏳ Inicializando base de datos...')
   await initDatabase()
+  
+  // Asegurar que las tablas base existan
+  console.log('[server] ⏳ Verificando esquema base...')
+  await setupDatabase()
+  
   console.log('[server] ✅ Base de datos lista')
 
   // Ahora importar las rutas que dependen de la DB

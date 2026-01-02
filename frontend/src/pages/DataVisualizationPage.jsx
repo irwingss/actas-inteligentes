@@ -227,7 +227,7 @@ export const DataVisualizationPage = ({ onBack }) => {
           setLoading(false)
           // Auto-apply empty filters to get all records
           applyFilters(id, {})
-        } else if (data.status === 'error') {
+        } else if (data.status === 'error' || data.status === 'failed') {
           setLoading(false)
           setError(data.error || 'Error en el proceso')
         } else {

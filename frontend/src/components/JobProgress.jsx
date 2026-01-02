@@ -94,7 +94,7 @@ export function JobProgress({ jobId, onComplete, onJobNotFound }) {
         const { data } = await api.get(`/api/s123/status/${jobId}`)
         if (cancelled) return
         setStatus(data)
-        if (data?.status === 'completed' || data?.status === 'failed') {
+        if (data?.status === 'completed' || data?.status === 'failed' || data?.status === 'error') {
           clearInterval(interval)
           // Solo llamar onComplete UNA VEZ
           if (data?.status === 'completed' && typeof onCompleteRef.current === 'function' && !hasCalledComplete) {
