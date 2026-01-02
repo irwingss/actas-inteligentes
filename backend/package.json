@@ -1,0 +1,38 @@
+{
+  "name": "actas-inteligentes-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "db:setup": "node db/setup.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "adm-zip": "^0.5.16",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.6.0",
+    "docx": "^8.5.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "form-data": "^4.0.1",
+    "iconv-lite": "^0.6.3",
+    "image-size": "^1.2.1",
+    "json2csv": "^6.0.0-alpha.2",
+    "marked": "^15.0.12",
+    "mime-types": "^3.0.1",
+    "multer": "^1.4.5-lts.1",
+    "proj4": "^2.11.0",
+    "sharp": "^0.34.5",
+    "sql.js": "^1.13.0",
+    "topojson-client": "^3.1.0",
+    "uuid": "^9.0.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz",
+    "zod": "^4.1.13",
+    "zod-to-json-schema": "^3.25.0"
+  }
+}

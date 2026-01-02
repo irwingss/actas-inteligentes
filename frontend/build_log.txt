@@ -1,0 +1,35 @@
+
+> actas-inteligentes-frontend@1.0.0 build
+> vite build
+
+[36mvite v5.2.11 [32mbuilding for production...[36m[39m
+transforming...
+[32mÔ£ô[39m 19 modules transformed.
+x Build failed in 1.39s
+error during build:
+Error: [vite:esbuild] Transform failed with 1 error:
+C:/Users/isald/Documents/Proyectos Windsurf/Maquetador_v3/frontend/src/pages/DataVisualizationPage.jsx:941:16: ERROR: Expected ";" but found "de"
+file: C:/Users/isald/Documents/Proyectos Windsurf/Maquetador_v3/frontend/src/pages/DataVisualizationPage.jsx:941:16
+
+Expected ";" but found "de"
+939|      </>
+940|    );
+941|            Rango de Fechas
+   |                  ^
+942|          </label >
+943|    <button
+
+    at failureErrorWithLog (C:\Users\isald\Documents\Proyectos Windsurf\Maquetador_v3\node_modules\esbuild\lib\main.js:1651:15)
+    at C:\Users\isald\Documents\Proyectos Windsurf\Maquetador_v3\node_modules\esbuild\lib\main.js:849:29
+    at responseCallbacks.<computed> (C:\Users\isald\Documents\Proyectos Windsurf\Maquetador_v3\node_modules\esbuild\lib\main.js:704:9)
+    at handleIncomingPacket (C:\Users\isald\Documents\Proyectos Windsurf\Maquetador_v3\node_modules\esbuild\lib\main.js:764:9)
+    at Socket.readFromStdout (C:\Users\isald\Documents\Proyectos Windsurf\Maquetador_v3\node_modules\esbuild\lib\main.js:680:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+npm ERR! Lifecycle script `build` failed with error: 
+npm ERR! Error: command failed 
+npm ERR!   in workspace: actas-inteligentes-frontend@1.0.0 
+npm ERR!   at location: C:\Users\isald\Documents\Proyectos Windsurf\Maquetador_v3\frontend 

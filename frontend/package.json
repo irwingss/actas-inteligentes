@@ -1,0 +1,43 @@
+{
+  "name": "actas-inteligentes-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "@tiptap/core": "^3.14.0",
+    "@tiptap/extension-placeholder": "^3.11.1",
+    "@tiptap/extension-text-align": "^3.11.1",
+    "@tiptap/extension-underline": "^3.11.1",
+    "@tiptap/pm": "^3.11.1",
+    "@tiptap/react": "^3.11.1",
+    "@tiptap/starter-kit": "^3.11.1",
+    "axios": "^1.6.7",
+    "diff": "^8.0.2",
+    "leaflet": "^1.9.4",
+    "lucide-react": "0.344.0",
+    "proj4": "^2.19.10",
+    "react": "18.3.1",
+    "react-day-picker": "^8.10.0",
+    "react-dom": "18.3.1",
+    "react-hot-toast": "^2.6.0",
+    "react-leaflet": "4.2.1",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "6.22.0",
+    "topojson-client": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "10.4.19",
+    "postcss": "8.4.38",
+    "tailwindcss": "3.4.3",
+    "vite": "^7.3.0"
+  }
+}

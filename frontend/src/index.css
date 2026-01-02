@@ -1,0 +1,833 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   SISTEMA DE COLORES CENTRALIZADO
+   Todos los colores de los 3 modos en un solo lugar
+   ============================================ */
+
+:root {
+  /* === LIGHT MODE (Default) === */
+  
+  /* Primary colors */
+  --color-primary: theme('colors.primary.600');
+  --color-primary-hover: theme('colors.primary.700');
+  --color-primary-dark: theme('colors.primary.800');
+  --color-primary-light: theme('colors.primary.500');
+  
+  /* Gradients */
+  --gradient-page-from: #e8f1f9;
+  --gradient-page-via: #f8fafc;
+  --gradient-page-to: #e6f5fa;
+  --gradient-btn-from: theme('colors.primary.500');
+  --gradient-btn-to: theme('colors.primary.600');
+  --gradient-btn-hover-from: theme('colors.primary.600');
+  --gradient-btn-hover-to: theme('colors.primary.700');
+  --gradient-card-from: theme('colors.primary.500');
+  --gradient-card-via: theme('colors.primary.600');
+  --gradient-card-to: theme('colors.primary.700');
+  
+  /* Backgrounds */
+  --bg-input: theme('colors.white');
+  --bg-hover: theme('colors.slate.200');
+  --bg-soft: theme('colors.slate.100');
+  --bg-card: theme('colors.white');
+  
+  /* Text colors */
+  --text-primary: theme('colors.slate.900');
+  --text-secondary: theme('colors.slate.700');
+  --text-muted: theme('colors.slate.600');
+  --text-hint: theme('colors.slate.500');
+  --text-placeholder: theme('colors.slate.400');
+  --text-link: theme('colors.primary.600');
+  --text-link-hover: theme('colors.primary.700');
+  
+  /* Borders */
+  --border-default: theme('colors.slate.300');
+  --border-muted: theme('colors.slate.200');
+  --border-focus: theme('colors.primary.500');
+  
+  /* Status colors - Error */
+  --color-error: theme('colors.red.600');
+  --color-error-hover: theme('colors.red.700');
+  --color-error-light: theme('colors.red.400');
+  --bg-error: theme('colors.red.50');
+  --border-error: theme('colors.red.200');
+  --text-error: theme('colors.red.800');
+  --text-error-muted: theme('colors.red.700');
+  
+  /* Status colors - Success */
+  --color-success: theme('colors.green.600');
+  --color-success-hover: theme('colors.green.700');
+  --color-success-light: theme('colors.green.400');
+  --bg-success: theme('colors.green.50');
+  --border-success: theme('colors.green.200');
+  --text-success: theme('colors.green.800');
+  --text-success-muted: theme('colors.green.700');
+  
+  /* Status colors - Warning */
+  --color-warning: theme('colors.yellow.600');
+  --color-warning-hover: theme('colors.yellow.700');
+  --color-warning-light: theme('colors.yellow.400');
+  --bg-warning: theme('colors.yellow.50');
+  --border-warning: theme('colors.yellow.200');
+  --text-warning: theme('colors.yellow.800');
+  --text-warning-muted: theme('colors.yellow.700');
+  
+  /* Status colors - Info (email not confirmed) */
+  --color-info: theme('colors.blue.600');
+  --color-info-hover: theme('colors.blue.700');
+  --color-info-light: theme('colors.blue.400');
+  --bg-info: theme('colors.blue.50');
+  --border-info: theme('colors.blue.200');
+  --text-info: theme('colors.blue.800');
+  --text-info-muted: theme('colors.blue.700');
+  
+  /* Status colors - Purple (user not found) */
+  --color-purple: theme('colors.purple.600');
+  --color-purple-hover: theme('colors.purple.700');
+  --color-purple-light: theme('colors.purple.400');
+  --bg-purple: theme('colors.purple.50');
+  --border-purple: theme('colors.purple.200');
+  --text-purple: theme('colors.purple.800');
+  --text-purple-muted: theme('colors.purple.700');
+  
+  /* Shadows */
+  --shadow-btn: 0 4px 14px -3px rgba(59, 130, 246, 0.3);
+  --shadow-btn-hover: 0 6px 20px -3px rgba(59, 130, 246, 0.4);
+  --shadow-card: 0 8px 32px rgba(59, 130, 246, 0.3);
+  --shadow-card-hover: 0 12px 40px rgba(59, 130, 246, 0.4);
+  
+  /* Focus ring */
+  --ring-focus: rgba(59, 130, 246, 0.5);
+}
+
+/* === DARK MODE === */
+.dark {
+  --color-primary: theme('colors.primary.400');
+  --color-primary-hover: theme('colors.primary.300');
+  --color-primary-dark: theme('colors.primary.500');
+  --color-primary-light: theme('colors.primary.300');
+  
+  --gradient-page-from: #0f172a;
+  --gradient-page-via: #1e293b;
+  --gradient-page-to: #041020;
+  --gradient-btn-from: theme('colors.primary.600');
+  --gradient-btn-to: theme('colors.primary.700');
+  --gradient-btn-hover-from: theme('colors.primary.500');
+  --gradient-btn-hover-to: theme('colors.primary.600');
+  --gradient-card-from: theme('colors.primary.600');
+  --gradient-card-via: theme('colors.primary.700');
+  --gradient-card-to: theme('colors.primary.800');
+  
+  --bg-input: theme('colors.slate.700');
+  --bg-hover: theme('colors.slate.700');
+  --bg-soft: theme('colors.slate.800');
+  --bg-card: theme('colors.slate.800');
+  
+  --text-primary: theme('colors.slate.100');
+  --text-secondary: theme('colors.slate.300');
+  --text-muted: theme('colors.slate.400');
+  --text-hint: theme('colors.slate.500');
+  --text-placeholder: theme('colors.slate.500');
+  --text-link: theme('colors.primary.400');
+  --text-link-hover: theme('colors.primary.300');
+  
+  --border-default: theme('colors.slate.600');
+  --border-muted: theme('colors.slate.700');
+  --border-focus: theme('colors.primary.500');
+  
+  --color-error: theme('colors.red.400');
+  --color-error-hover: theme('colors.red.300');
+  --color-error-light: theme('colors.red.500');
+  --bg-error: rgba(239, 68, 68, 0.2);
+  --border-error: theme('colors.red.800');
+  --text-error: theme('colors.red.300');
+  --text-error-muted: theme('colors.red.400');
+  
+  --color-success: theme('colors.green.400');
+  --color-success-hover: theme('colors.green.300');
+  --color-success-light: theme('colors.green.500');
+  --bg-success: rgba(34, 197, 94, 0.2);
+  --border-success: theme('colors.green.800');
+  --text-success: theme('colors.green.300');
+  --text-success-muted: theme('colors.green.400');
+  
+  --color-warning: theme('colors.yellow.400');
+  --color-warning-hover: theme('colors.yellow.300');
+  --color-warning-light: theme('colors.yellow.500');
+  --bg-warning: rgba(234, 179, 8, 0.2);
+  --border-warning: theme('colors.yellow.800');
+  --text-warning: theme('colors.yellow.300');
+  --text-warning-muted: theme('colors.yellow.400');
+  
+  --color-info: theme('colors.blue.400');
+  --color-info-hover: theme('colors.blue.300');
+  --color-info-light: theme('colors.blue.500');
+  --bg-info: rgba(59, 130, 246, 0.2);
+  --border-info: theme('colors.blue.800');
+  --text-info: theme('colors.blue.300');
+  --text-info-muted: theme('colors.blue.400');
+  
+  --color-purple: theme('colors.purple.400');
+  --color-purple-hover: theme('colors.purple.300');
+  --color-purple-light: theme('colors.purple.500');
+  --bg-purple: rgba(168, 85, 247, 0.2);
+  --border-purple: theme('colors.purple.800');
+  --text-purple: theme('colors.purple.300');
+  --text-purple-muted: theme('colors.purple.400');
+  
+  --shadow-btn: 0 4px 14px -3px rgba(59, 130, 246, 0.4);
+  --shadow-btn-hover: 0 6px 20px -3px rgba(59, 130, 246, 0.5);
+  --shadow-card: 0 8px 32px rgba(59, 130, 246, 0.4);
+  --shadow-card-hover: 0 12px 40px rgba(59, 130, 246, 0.5);
+  
+  --ring-focus: rgba(59, 130, 246, 0.5);
+}
+
+/* === PINK MODE === */
+.pink {
+  /* Primary - Hot Pink */
+  --color-primary: #ff0075;
+  --color-primary-hover: #e6006a;
+  --color-primary-dark: #cc0059;
+  --color-primary-light: #ff1a8c;
+  
+  /* Gradients */
+  --gradient-page-from: #fbb2d4;
+  --gradient-page-via: #ffd1e6;
+  --gradient-page-to: #ffdaeb;
+  --gradient-btn-from: #ff0075;
+  --gradient-btn-to: #ff1a8c;
+  --gradient-btn-hover-from: #e6006a;
+  --gradient-btn-hover-to: #ff0075;
+  --gradient-card-from: #ff0075;
+  --gradient-card-via: #ff1a8c;
+  --gradient-card-to: #ff3399;
+  
+  /* Backgrounds */
+  --bg-input: #fff5fa;
+  --bg-hover: #ffc4e0;
+  --bg-soft: #ffd1e6;
+  --bg-card: rgba(255, 255, 255, 0.95);
+  
+  /* Text colors */
+  --text-primary: #ff0075;
+  --text-secondary: #960046;
+  --text-muted: #334155;
+  --text-hint: #475569;
+  --text-placeholder: #ff99cc;
+  --text-link: #ff0075;
+  --text-link-hover: #e6006a;
+  
+  /* Borders */
+  --border-default: #ffb3d9;
+  --border-muted: #ffd1e6;
+  --border-focus: #ff0075;
+  
+  /* Status colors - Error (uses primary pink in this mode) */
+  --color-error: #ff0075;
+  --color-error-hover: #e6006a;
+  --color-error-light: #ff66a3;
+  --bg-error: #ffe6f0;
+  --border-error: #ff0075;
+  --text-error: #cc0059;
+  --text-error-muted: #e6006a;
+  
+  /* Status colors - Success (softer greens) */
+  --color-success: #00aa55;
+  --color-success-hover: #008844;
+  --color-success-light: #00cc66;
+  --bg-success: #e6ffe6;
+  --border-success: #00cc66;
+  --text-success: #008844;
+  --text-success-muted: #006633;
+  
+  /* Status colors - Warning (warm oranges) */
+  --color-warning: #ff8800;
+  --color-warning-hover: #cc6600;
+  --color-warning-light: #ffb347;
+  --bg-warning: #fff5e6;
+  --border-warning: #ffb347;
+  --text-warning: #cc6600;
+  --text-warning-muted: #b35900;
+  
+  /* Status colors - Info (soft blues) */
+  --color-info: #0066cc;
+  --color-info-hover: #004d99;
+  --color-info-light: #4da6ff;
+  --bg-info: #e6f3ff;
+  --border-info: #4da6ff;
+  --text-info: #004d99;
+  --text-info-muted: #003d7a;
+  
+  /* Status colors - Purple (user not found) */
+  --color-purple: #8800cc;
+  --color-purple-hover: #660099;
+  --color-purple-light: #b366ff;
+  --bg-purple: #f3e6ff;
+  --border-purple: #b366ff;
+  --text-purple: #660099;
+  --text-purple-muted: #550077;
+  
+  /* Shadows - Pink glow */
+  --shadow-btn: 0 4px 14px -3px rgba(255, 0, 117, 0.3);
+  --shadow-btn-hover: 0 6px 20px -3px rgba(255, 0, 117, 0.4);
+  --shadow-card: 0 8px 32px rgba(255, 0, 117, 0.3);
+  --shadow-card-hover: 0 12px 40px rgba(255, 0, 117, 0.4);
+  
+  /* Focus ring */
+  --ring-focus: rgba(255, 0, 117, 0.5);
+}
+
+/* ============================================
+   UTILITY CLASSES USANDO VARIABLES CSS
+   Para usar en los componentes con el prefijo pink:, dark:
+   ============================================ */
+
+@layer components {
+  /* Page gradients */
+  .theme-gradient-page {
+    background: linear-gradient(to bottom right, var(--gradient-page-from), var(--gradient-page-via), var(--gradient-page-to));
+  }
+  .pink .theme-gradient-page {
+    background: linear-gradient(to right, var(--gradient-page-from), var(--gradient-page-to));
+  }
+  
+  /* Button gradients */
+  .theme-gradient-btn {
+    background: linear-gradient(to right, var(--gradient-btn-from), var(--gradient-btn-to));
+    box-shadow: var(--shadow-btn);
+  }
+  .theme-gradient-btn:hover {
+    background: linear-gradient(to right, var(--gradient-btn-hover-from), var(--gradient-btn-hover-to));
+    box-shadow: var(--shadow-btn-hover);
+  }
+  
+  /* Card gradients */
+  .theme-gradient-card {
+    background: linear-gradient(to bottom right, var(--gradient-card-from), var(--gradient-card-via), var(--gradient-card-to));
+    box-shadow: var(--shadow-card);
+  }
+  .theme-gradient-card:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+  
+  /* Success gradient (for success screens) */
+  .theme-gradient-success {
+    background: linear-gradient(to bottom right, var(--color-success), var(--color-success-hover));
+  }
+  
+  /* Text colors */
+  .theme-text-primary { color: var(--text-primary); }
+  .theme-text-secondary { color: var(--text-secondary); }
+  .theme-text-muted { color: var(--text-muted); }
+  .theme-text-hint { color: var(--text-hint); }
+  .theme-text-link { color: var(--text-link); }
+  .theme-text-link:hover { color: var(--text-link-hover); }
+  
+  /* Backgrounds */
+  .theme-bg-input { background-color: var(--bg-input); }
+  .theme-bg-hover { background-color: var(--bg-hover); }
+  .theme-bg-soft { background-color: var(--bg-soft); }
+  .theme-bg-card { background-color: var(--bg-card); }
+  .hover\:theme-bg-soft:hover { background-color: var(--bg-soft); }
+  .hover\:theme-bg-hover:hover { background-color: var(--bg-hover); }
+  
+  /* Borders */
+  .theme-border { border-color: var(--border-default); }
+  .theme-border-muted { border-color: var(--border-muted); }
+  .theme-border-focus { border-color: var(--border-focus); }
+  
+  /* Focus ring */
+  .theme-ring-focus:focus {
+    --tw-ring-color: var(--ring-focus);
+  }
+  
+  /* Status: Error */
+  .theme-bg-error { background-color: var(--bg-error); }
+  .theme-border-error { border-color: var(--border-error); }
+  .theme-text-error { color: var(--text-error); }
+  .theme-text-error-muted { color: var(--text-error-muted); }
+  .theme-color-error { color: var(--color-error); }
+  
+  /* Status: Success */
+  .theme-bg-success { background-color: var(--bg-success); }
+  .theme-border-success { border-color: var(--border-success); }
+  .theme-text-success { color: var(--text-success); }
+  .theme-text-success-muted { color: var(--text-success-muted); }
+  .theme-color-success { color: var(--color-success); }
+  
+  /* Status: Warning */
+  .theme-bg-warning { background-color: var(--bg-warning); }
+  .theme-border-warning { border-color: var(--border-warning); }
+  .theme-text-warning { color: var(--text-warning); }
+  .theme-text-warning-muted { color: var(--text-warning-muted); }
+  .theme-color-warning { color: var(--color-warning); }
+  
+  /* Status: Info */
+  .theme-bg-info { background-color: var(--bg-info); }
+  .theme-border-info { border-color: var(--border-info); }
+  .theme-text-info { color: var(--text-info); }
+  .theme-text-info-muted { color: var(--text-info-muted); }
+  .theme-color-info { color: var(--color-info); }
+  
+  /* Status: Purple */
+  .theme-bg-purple { background-color: var(--bg-purple); }
+  .theme-border-purple { border-color: var(--border-purple); }
+  .theme-text-purple { color: var(--text-purple); }
+  .theme-text-purple-muted { color: var(--text-purple-muted); }
+  .theme-color-purple { color: var(--color-purple); }
+  
+  /* Input styling */
+  .theme-input {
+    background-color: var(--bg-input);
+    border-color: var(--border-default);
+    color: var(--text-primary);
+  }
+  .theme-input::placeholder {
+    color: var(--text-placeholder);
+  }
+  .theme-input:focus {
+    border-color: var(--border-focus);
+    --tw-ring-color: var(--ring-focus);
+  }
+  
+  /* Label styling */
+  .theme-label {
+    color: var(--text-primary);
+  }
+}
+
+@layer base {
+  /* Cursor por defecto en toda la app - evita el cursor de texto en elementos no editables */
+  *:not(input):not(textarea):not([contenteditable="true"]):not(.ProseMirror):not(.ProseMirror *) {
+    cursor: default !important;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Cursor de texto y selección solo en elementos editables */
+  input,
+  textarea,
+  [contenteditable="true"],
+  .ProseMirror,
+  .ProseMirror * {
+    cursor: text !important;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+  
+  /* Cursor pointer para elementos interactivos */
+  a,
+  button,
+  [role="button"],
+  label[for],
+  select,
+  option,
+  summary,
+  [onclick],
+  .cursor-pointer {
+    cursor: pointer !important;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    /* Fondo Light - igual que Login */
+    background: linear-gradient(to bottom right, #e8f1f9, #f8fafc, #e6f5fa);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .dark body {
+    @apply text-slate-100;
+    /* Fondo Dark - igual que Login */
+    background: linear-gradient(to bottom right, #0f172a, #1e293b, #041020);
+  }
+
+  .pink body {
+    @apply text-white;
+    /* Fondo Pink - igual que Login: rosa oscuro a claro horizontal (90 grados) */
+    background: linear-gradient(to right, #fbb2d4, #ffdaeb);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Eliminar scroll de página cuando estamos en vistas de altura completa */
+  html.overflow-hidden,
+  html.overflow-hidden body {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* Focus visible for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Screen reader only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sr-only.focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
+
+/* Leaflet Popup - Estilo profesional */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 0;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 1rem;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.1);
+}
+
+/* Leaflet Controls - Mejor UX */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: white !important;
+  color: #334155 !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.leaflet-control-zoom a:first-child {
+  border-top-left-radius: 0.5rem !important;
+  border-top-right-radius: 0.5rem !important;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-bottom-left-radius: 0.5rem !important;
+  border-bottom-right-radius: 0.5rem !important;
+}
+
+/* Marker hover effect - sin animación de posición */
+.leaflet-marker-icon:hover {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  z-index: 1000 !important;
+  cursor: pointer;
+}
+
+/* GeoJSON Tooltip styling */
+.geojson-tooltip {
+  background-color: rgba(15, 23, 42, 0.98) !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+  border-radius: 0.5rem !important;
+  color: white !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+  line-height: 1.4 !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+}
+
+.geojson-tooltip::before {
+  border-top-color: rgba(15, 23, 42, 0.98) !important;
+}
+
+/* Scrollbar para tooltip */
+.geojson-tooltip::-webkit-scrollbar {
+  width: 6px;
+}
+
+.geojson-tooltip::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.geojson-tooltip::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.geojson-tooltip::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* GeoJSON Popup styling (mismo estilo que tooltip para consistencia) */
+.geojson-popup .leaflet-popup-content-wrapper {
+  background-color: rgba(15, 23, 42, 0.98) !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+  border-radius: 0.5rem !important;
+  color: white !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+  line-height: 1.4 !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+}
+
+.geojson-popup .leaflet-popup-content {
+  margin: 0 !important;
+}
+
+.geojson-popup .leaflet-popup-tip {
+  background-color: rgba(15, 23, 42, 0.98) !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+}
+
+/* Scrollbar para popup */
+.geojson-popup .leaflet-popup-content-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.geojson-popup .leaflet-popup-content-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.geojson-popup .leaflet-popup-content-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.geojson-popup .leaflet-popup-content-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Botón de cerrar del popup */
+.geojson-popup .leaflet-popup-close-button {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 18px !important;
+  padding: 4px 8px !important;
+}
+
+.geojson-popup .leaflet-popup-close-button:hover {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Etiquetas permanentes de polígonos - Texto negro con halo blanco */
+.polygon-label {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-align: center !important;
+  padding: 2px 6px !important;
+  white-space: nowrap !important;
+  text-shadow: 
+    -1px -1px 0 #fff,
+    1px -1px 0 #fff,
+    -1px 1px 0 #fff,
+    1px 1px 0 #fff,
+    -2px 0 0 #fff,
+    2px 0 0 #fff,
+    0 -2px 0 #fff,
+    0 2px 0 #fff,
+    -1px 0 0 #fff,
+    1px 0 0 #fff,
+    0 -1px 0 #fff,
+    0 1px 0 #fff !important;
+  pointer-events: none !important;
+}
+
+.polygon-label::before {
+  display: none !important;
+}
+
+/* Hide scrollbar for photo gallery */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Sidebar slide animation */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Fade-in animation for loader */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Scale-in animation for modals */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Custom scrollbar for chat - Light mode */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+/* Custom scrollbar for chat - Dark mode */
+.dark .chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.dark .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+/* Custom scrollbar for chat - Pink mode */
+.pink .chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(236, 72, 153, 0.2);
+}
+
+.pink .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(236, 72, 153, 0.35);
+}
+
+/* Firefox scrollbar */
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
+.dark .chat-scrollbar {
+  scrollbar-color: rgba(148, 163, 184, 0.15) transparent;
+}
+
+.pink .chat-scrollbar {
+  scrollbar-color: rgba(236, 72, 153, 0.2) transparent;
+}
+
+/* Custom scrollbar for photo sidebar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Dark mode */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.05);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+/* Pink mode */
+.pink .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(236, 72, 153, 0.1);
+}
+
+.pink .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(236, 72, 153, 0.3);
+}
+
+.pink .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(236, 72, 153, 0.5);
+}

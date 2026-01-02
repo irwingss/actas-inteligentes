@@ -1,0 +1,71 @@
+{
+  "name": "actas-inteligentes",
+  "version": "1.4.0",
+  "description": "Actas Inteligentes: Aplicación para generar actas de supervisión ambiental",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "start": "npm start --workspace=backend",
+    "build": "npm run build:frontend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "bundle:backend": "node bundle-backend.js",
+    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:5173 && wait-on http://localhost:3000/api/health && electron .\"",
+    "electron:dist": "npm run clean && npm run build:frontend && npm run bundle:backend && electron-builder --win",
+    "clean": "rimraf frontend/dist dist-backend dist"
+  },
+  "author": {
+    "name": "CHID OEFA",
+    "email": "irwingssaldu@gmail.com"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.11.0",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^39.2.7",
+    "electron-builder": "^24.13.3",
+    "esbuild": "^0.27.2",
+    "rimraf": "^5.0.5",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.oefa.actas-inteligentes",
+    "productName": "Actas Inteligentes",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "dist-backend/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-backend",
+        "to": "dist-backend"
+      },
+      {
+        "from": "frontend/dist",
+        "to": "frontend/dist"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
+}

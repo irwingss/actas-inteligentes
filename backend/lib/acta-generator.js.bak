@@ -1,0 +1,488 @@
+/**
+ * Módulo para la generación de Actas de Supervisión en Word
+ * Formato oficial OEFA - DSEM
+ */
+import {
+  Document,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  WidthType,
+  AlignmentType,
+  ImageRun,
+  BorderStyle,
+  TextRun,
+  VerticalAlign,
+  Header,
+  Footer,
+  PageNumber,
+  NumberFormat,
+  HeadingLevel,
+  HeightRule,
+  convertInchesToTwip,
+  ShadingType
+} from 'docx';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import configService from '../services/configService.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Constantes de estilo del documento
+const FONT_FAMILY = 'Arial';
+const FONT_SIZE_10 = 20; // 10pt (en half-points: pt * 2)
+const FONT_SIZE_NORMAL = 20; // 10pt 
+const FONT_SIZE_TITLE = 24; // 12pt
+const FONT_SIZE_HEADER = 16; // 8pt para decenio/año
+
+// Color rojo del acta OEFA
+const COLOR_BLACK = '000000'; // Rojo oscuro
+const GRAY_SHADING = 'D9D9D9'; // Gris claro para celdas de encabezado
+
+/**
+ * Crea el header del documento con imagen y textos de decenio/año
+ * @param {Buffer} headerImageBuffer - Buffer de la imagen del header
+ * @param {string} decenio - Texto del decenio
+ * @param {string} anio - Texto del año
+ * @returns {Header} Header configurado
+ */
+function createDocumentHeader(headerImageBuffer, decenio, anio) {
+  const headerChildren = [];
+
+  // 1. Imagen del header centrada (solo si existe)
+  if (headerImageBuffer) {
+    headerChildren.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 100 },
+        children: [
+          new ImageRun({
+            data: headerImageBuffer,
+            transformation: {
+              width: 500, // ~17.5cm aproximadamente
+              height: 45, // Mantener proporción
+            },
+          }),
+        ],
+      })
+    );
+  }
+
+  // 2. Decenio (texto en rojo, cursiva, centrado)
+  headerChildren.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 50, after: 0 },
+      children: [
+        new TextRun({
+          text: decenio,
+          font: FONT_FAMILY,
+          size: FONT_SIZE_HEADER,
+          italics: true,
+          color: COLOR_BLACK,
+        }),
+      ],
+    })
+  );
+
+  // 3. Año (texto en rojo, cursiva, centrado)
+  headerChildren.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 100 },
+      children: [
+        new TextRun({
+          text: anio,
+          font: FONT_FAMILY,
+          size: FONT_SIZE_HEADER,
+          italics: true,
+          color: COLOR_BLACK,
+        }),
+      ],
+    })
+  );
+
+  return new Header({
+    children: headerChildren,
+  });
+}
+
+/**
+ * Crea una celda de tabla con bordes y formato estándar
+ * @param {string|TextRun[]} content - Contenido de la celda
+ * @param {Object} options - Opciones de la celda
+ * @returns {TableCell}
+ */
+function createCell(content, options = {}) {
+  const {
+    bold = false,
+    shading = null,
+    columnSpan = 1,
+    rowSpan = 1,
+    alignment = AlignmentType.LEFT,
+    verticalAlign = VerticalAlign.CENTER,
+    width = null,
+    fontSize = FONT_SIZE_10,
+  } = options;
+
+  const textContent = typeof content === 'string' 
+    ? [new TextRun({ text: content, font: FONT_FAMILY, size: fontSize, bold })]
+    : content;
+
+  const cellOptions = {
+    children: [
+      new Paragraph({
+        children: textContent,
+        alignment,
+      }),
+    ],
+    verticalAlign,
+    columnSpan,
+    rowSpan,
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+    },
+  };
+
+  if (shading) {
+    cellOptions.shading = { type: ShadingType.SOLID, color: shading };
+  }
+
+  if (width) {
+    cellOptions.width = { size: width, type: WidthType.PERCENTAGE };
+  }
+
+  return new TableCell(cellOptions);
+}
+
+/**
+ * Crea una celda con label en negrita (fondo gris claro)
+ */
+function createLabelCell(text, options = {}) {
+  return createCell(
+    [new TextRun({ text, font: FONT_FAMILY, size: FONT_SIZE_10, bold: true })],
+    {
+      ...options,
+      shading: GRAY_SHADING,
+      alignment: options.alignment || AlignmentType.CENTER,
+    }
+  );
+}
+
+/**
+ * Crea una celda con valor (sin fondo)
+ */
+function createValueCell(text, options = {}) {
+  return createCell(text || '', options);
+}
+
+/**
+ * Parsea fecha y hora de un string datetime
+ * @param {string} datetime - String en formato "YYYY-MM-DD" o "YYYY-MM-DDTHH:MM:SS" o "DD/MM/YYYY HH:MM"
+ * @returns {Object} {fecha, hora}
+ */
+function parseFechaHora(datetime) {
+  if (!datetime) return { fecha: '', hora: '' };
+  
+  // Formato ISO: 2025-05-05T09:38:00 o 2025-05-05 09:38
+  if (datetime.includes('T')) {
+    const [fecha, horaPart] = datetime.split('T');
+    const hora = horaPart ? horaPart.substring(0, 5) : '';
+    return { fecha, hora };
+  }
+  
+  // Formato con espacio: 2025-05-05 09:38 o DD/MM/YYYY HH:MM
+  const parts = datetime.split(' ');
+  if (parts.length >= 2) {
+    return { fecha: parts[0], hora: parts[1].substring(0, 5) };
+  }
+  
+  return { fecha: datetime, hora: '' };
+}
+
+/**
+ * Genera la tabla de Datos Generales (Sección 1) - Formato OEFA
+ * La tabla tiene 7 columnas base para acomodar los Equipos GPS
+ * @param {Object} borrador - Datos del borrador del acta
+ * @returns {Table}
+ */
+function createDatosGeneralesTable(borrador) {
+  // Parsear equipos GPS
+  let equiposGPS = [];
+  try {
+    equiposGPS = JSON.parse(borrador.equipos_gps_json || '[]');
+  } catch (e) {
+    equiposGPS = [];
+  }
+
+  // Anchos de columna (7 columnas) según imagen de referencia
+  // Col1: 13%, Col2: 9%, Col3: 9%, Col4: 13%, Col5: 25%, Col6: 11%, Col7: 20%
+  const COL_W = [13, 9, 9, 13, 25, 11, 20];
+
+  const rows = [];
+
+  // Fila 1: Encabezado "1. Datos Generales" - Justificado a la IZQUIERDA con fondo gris
+  rows.push(
+    new TableRow({
+      children: [
+        createCell(
+          [new TextRun({ text: '1.   Datos Generales', font: FONT_FAMILY, size: FONT_SIZE_10, bold: true })],
+          { columnSpan: 7, shading: GRAY_SHADING, alignment: AlignmentType.LEFT }
+        ),
+      ],
+    })
+  );
+
+  // Fila 2: Nombre del Administrado | valor (4 cols) | RUC | valor
+  rows.push(
+    new TableRow({
+      children: [
+        createLabelCell('Nombre del Administrado', { alignment: AlignmentType.LEFT }),
+        createValueCell(borrador.nombre_administrado || '', { columnSpan: 4 }),
+        createLabelCell('RUC'),
+        createValueCell(borrador.ruc || ''),
+      ],
+    })
+  );
+
+  // Fila 3: Unidad Fiscalizable | valor (6 columnas)
+  rows.push(
+    new TableRow({
+      children: [
+        createLabelCell('Unidad Fiscalizable', { alignment: AlignmentType.LEFT }),
+        createValueCell(borrador.unidad_fiscalizable || '', { columnSpan: 6 }),
+      ],
+    })
+  );
+
+  // Fila 4: Departamento | Provincia | Distrito (LABELS - fondo gris)
+  rows.push(
+    new TableRow({
+      children: [
+        createLabelCell('Departamento', { columnSpan: 2 }),
+        createLabelCell('Provincia', { columnSpan: 3 }),
+        createLabelCell('Distrito', { columnSpan: 2 }),
+      ],
+    })
+  );
+
+  // Fila 5: Valores de Departamento | Provincia | Distrito (VALORES - debajo)
+  rows.push(
+    new TableRow({
+      children: [
+        createValueCell(borrador.departamento || '', { columnSpan: 2, alignment: AlignmentType.CENTER }),
+        createValueCell(borrador.provincia || '', { columnSpan: 3, alignment: AlignmentType.CENTER }),
+        createValueCell(borrador.distrito || '', { columnSpan: 2, alignment: AlignmentType.CENTER }),
+      ],
+    })
+  );
+
+  // Fila 6: Dirección y/o Referencia | valor
+  rows.push(
+    new TableRow({
+      children: [
+        createLabelCell('Dirección y/o Referencia', { alignment: AlignmentType.LEFT }),
+        createValueCell(borrador.direccion_referencia || '', { columnSpan: 6 }),
+      ],
+    })
+  );
+
+  // Fila 7: Actividad Desarrollada | valor (4 cols) | Etapa | valor
+  rows.push(
+    new TableRow({
+      children: [
+        createLabelCell('Actividad Desarrollada', { alignment: AlignmentType.LEFT }),
+        createValueCell(borrador.actividad_desarrollada || '', { columnSpan: 4 }),
+        createLabelCell('Etapa'),
+        createValueCell(borrador.etapa || ''),
+      ],
+    })
+  );
+
+  // Fila 8: Tipo de Supervisión | valor | Orientativa | valor | Estado | valor (2 cols para último)
+  rows.push(
+    new TableRow({
+      children: [
+        createLabelCell('Tipo de Supervisión', { alignment: AlignmentType.LEFT }),
+        createValueCell(borrador.tipo_supervision || ''),
+        createLabelCell('Orientativa'),
+        createValueCell(borrador.orientativa || 'No', { alignment: AlignmentType.CENTER }),
+        createLabelCell('Estado'),
+        createValueCell(borrador.estado || '', { columnSpan: 2 }),
+      ],
+    })
+  );
+
+  // Fila 9: Fecha/Hora de Inicio | fecha | hora h | Fecha/Hora de Cierre | fecha | hora h (2 cols)
+  const inicioData = parseFechaHora(borrador.fecha_hora_inicio);
+  const cierreData = parseFechaHora(borrador.fecha_hora_cierre);
+
+  rows.push(
+    new TableRow({
+      children: [
+        createLabelCell('Fecha/Hora de Inicio', { alignment: AlignmentType.LEFT }),
+        createValueCell(inicioData.fecha, { alignment: AlignmentType.CENTER }),
+        createValueCell(inicioData.hora ? `${inicioData.hora} h` : '', { alignment: AlignmentType.CENTER }),
+        createLabelCell('Fecha/Hora de Cierre', { alignment: AlignmentType.LEFT }),
+        createValueCell(cierreData.fecha, { alignment: AlignmentType.CENTER }),
+        createValueCell(cierreData.hora ? `${cierreData.hora} h` : '', { columnSpan: 2, alignment: AlignmentType.CENTER }),
+      ],
+    })
+  );
+
+  // Filas de Equipos GPS (7 columnas: GPS | Código | valor | Marca | valor | Sistema | valor)
+  const numGPSRows = Math.max(2, equiposGPS.length);
+  for (let i = 0; i < numGPSRows; i++) {
+    const equipo = equiposGPS[i] || {};
+    rows.push(
+      new TableRow({
+        children: [
+          createLabelCell('Equipos GPS', { alignment: AlignmentType.LEFT, width: COL_W[0] }),
+          createLabelCell('Código', { width: COL_W[1] }),
+          createValueCell(equipo.codigo || '', { alignment: AlignmentType.CENTER, width: COL_W[2] }),
+          createLabelCell('Marca', { width: COL_W[3] }),
+          createValueCell(equipo.marca || 'Garmin Montana 750i', { alignment: AlignmentType.CENTER, width: COL_W[4] }),
+          createLabelCell('Sistema', { width: COL_W[5] }),
+          createValueCell(equipo.sistema || 'WGS 84/UTM', { alignment: AlignmentType.CENTER, width: COL_W[6] }),
+        ],
+      })
+    );
+  }
+  
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows,
+  });
+}
+
+/**
+ * Genera el documento Word del Acta de Supervisión
+ * @param {Object} borrador - Datos del borrador del acta
+ * @param {Object} options - Opciones adicionales
+ * @returns {Promise<Buffer>} Buffer del documento Word
+ */
+export async function generateActaWord(borrador, options = {}) {
+  // Obtener configuración del header (decenio y año)
+  const headerConfig = await configService.getActaHeaderConfig();
+
+  // Cargar imagen del header
+  let headerImageBuffer = null;
+  const headerImagePath = path.resolve(__dirname, '../../frontend/public/header_minam_actas.png');
+  
+  try {
+    if (fs.existsSync(headerImagePath)) {
+      headerImageBuffer = fs.readFileSync(headerImagePath);
+      console.log('[acta-generator] ✅ Imagen de header cargada');
+    } else {
+      console.warn('[acta-generator] ⚠️ Imagen de header no encontrada:', headerImagePath);
+    }
+  } catch (error) {
+    console.error('[acta-generator] ❌ Error cargando imagen de header:', error);
+  }
+
+  // Crear header con imagen y textos de decenio/año
+  const header = createDocumentHeader(
+    headerImageBuffer,
+    headerConfig.decenio,
+    headerConfig.anio
+  );
+
+  // Contenido del documento
+  const children = [];
+
+  // Título: "Acta de Supervisión"
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 200, after: 200 },
+      children: [
+        new TextRun({
+          text: 'Acta de Supervisión',
+          font: FONT_FAMILY,
+          size: 28, // 14pt
+          bold: true,
+        }),
+      ],
+    })
+  );
+
+  // Expediente
+  const expediente = borrador.expediente || 'XXXX-202X-DSEM-CHID';
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 100, after: 300 },
+      children: [
+        new TextRun({
+          text: 'Expediente N.º ',
+          font: FONT_FAMILY,
+          size: FONT_SIZE_TITLE,
+          bold: true,
+        }),
+        new TextRun({
+          text: expediente,
+          font: FONT_FAMILY,
+          size: FONT_SIZE_TITLE,
+          bold: true,
+          color: COLOR_BLACK,
+        }),
+      ],
+    })
+  );
+
+  // Tabla de Datos Generales
+  const datosGeneralesTable = createDatosGeneralesTable(borrador);
+  children.push(datosGeneralesTable);
+
+  // Párrafo de constancia (después de la tabla)
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { before: 300, after: 200 },
+      children: [
+        new TextRun({
+          text: 'En el ejercicio de las funciones atribuidas por las normas vigentes, el equipo supervisor acreditado por el Organismo de Evaluación y Fiscalización Ambiental ha constatado lo siguiente:',
+          font: FONT_FAMILY,
+          size: FONT_SIZE_NORMAL,
+        }),
+      ],
+    })
+  );
+
+  // Crear documento
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              top: convertInchesToTwip(0.5),
+              right: convertInchesToTwip(0.75),
+              bottom: convertInchesToTwip(0.5),
+              left: convertInchesToTwip(0.75),
+            },
+          },
+        },
+        headers: {
+          default: header,
+        },
+        children,
+      },
+    ],
+  });
+
+  // Generar buffer
+  const buffer = await Packer.toBuffer(doc);
+  return buffer;
+}
+
+export default {
+  generateActaWord,
+};
