@@ -11,6 +11,8 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { PhotoDetailModal } from './actas/PhotoDetailModal';
 
+const API_BASE = 'http://localhost:3000';
+
 // Helper para generar ID único por foto (debe coincidir con otros componentes)
 const getPhotoUniqueId = (foto) => {
   if (!foto) return null;
@@ -73,6 +75,10 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
   const [descripcionesEditadas, setDescripcionesEditadas] = useState({});
   const [savingDescripcion, setSavingDescripcion] = useState(null);
   const [photoAnnotations, setPhotoAnnotations] = useState({});
+  
+  // Estados para edición de metadata (componente, instalación)
+  const [metadataEditadas, setMetadataEditadas] = useState({});
+  const [savingMetadata, setSavingMetadata] = useState(null);
 
   // Cargar opciones de filtros al montar
   useEffect(() => {
@@ -102,7 +108,7 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
       if (photoIds.length === 0) return;
       
       const response = await axios.get(
-        `/api/s123/direct/descripciones-por-fotos?photoIds=${encodeURIComponent(photoIds.join(','))}`,
+        `${API_BASE}/api/s123/direct/descripciones-por-fotos?photoIds=${encodeURIComponent(photoIds.join(','))}`,
         { headers: { Authorization: `Bearer ${session.access_token}` } }
       );
       
@@ -129,7 +135,7 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
     setSavingDescripcion(photoId);
     try {
       await axios.put(
-        `/api/s123/direct/descripcion/${encodeURIComponent(photoId)}`,
+        `${API_BASE}/api/s123/direct/descripcion/${encodeURIComponent(photoId)}`,
         { campo: 'descrip_1', valor: texto },
         { headers: { Authorization: `Bearer ${session.access_token}` } }
       );
@@ -153,7 +159,7 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
     setSavingDescripcion(photoId);
     try {
       await axios.put(
-        `/api/s123/direct/descripcion/${encodeURIComponent(photoId)}`,
+        `${API_BASE}/api/s123/direct/descripcion/${encodeURIComponent(photoId)}`,
         { campo: 'descrip_1', valor: null },
         { headers: { Authorization: `Bearer ${session.access_token}` } }
       );
@@ -172,12 +178,66 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
     }
   };
   
-  // Manejar cambio de anotaciones
-  const handleAnnotationsChange = (photoId, annotations) => {
+  // Manejar cambio de anotaciones - guardar en backend
+  const handleAnnotationsChange = async (photoId, annotations) => {
+    // Actualizar estado local inmediatamente
     setPhotoAnnotations(prev => ({
       ...prev,
       [photoId]: annotations
     }));
+    
+    // Guardar en backend
+    if (session?.access_token) {
+      try {
+        await axios.put(
+          `${API_BASE}/api/s123/direct/anotaciones/${encodeURIComponent(photoId)}`,
+          { anotaciones: JSON.stringify(annotations) },
+          { headers: { Authorization: `Bearer ${session.access_token}` } }
+        );
+        console.log('[PhotoSidebar] ✅ Anotaciones guardadas:', photoId);
+      } catch (error) {
+        console.error('[PhotoSidebar] ❌ Error guardando anotaciones:', error);
+        toast.error('Error al guardar anotaciones');
+      }
+    }
+  };
+  
+  // Manejar cambio de metadata (componente, instalación) - solo actualiza estado local
+  const handleMetadataChange = (globalid, metadata) => {
+    setMetadataEditadas(prev => ({
+      ...prev,
+      [globalid]: { ...(prev[globalid] || {}), ...metadata }
+    }));
+  };
+  
+  // Guardar metadata editada en backend
+  const guardarMetadata = async (globalid, metadata) => {
+    if (!session?.access_token) return;
+    
+    setSavingMetadata(globalid);
+    try {
+      await axios.put(
+        `${API_BASE}/api/s123/direct/metadata/${encodeURIComponent(globalid)}`,
+        metadata,
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
+      
+      // Actualizar estado local
+      setMetadataEditadas(prev => ({
+        ...prev,
+        [globalid]: { ...(prev[globalid] || {}), ...metadata }
+      }));
+      
+      toast.success('Datos actualizados');
+      
+      // Recargar fotos para reflejar cambios
+      loadPhotos();
+    } catch (error) {
+      console.error('[PhotoSidebar] Error guardando metadata:', error);
+      toast.error('Error al guardar');
+    } finally {
+      setSavingMetadata(null);
+    }
   };
   
   // Navegar entre fotos en el modal
@@ -219,7 +279,7 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
 
   const fetchUniqueValues = async (field) => {
     try {
-      const response = await axios.get(`/api/s123/unique-values/${caCode}/${field}`, {
+      const response = await axios.get(`${API_BASE}/api/s123/unique-values/${caCode}/${field}`, {
         headers: {
           Authorization: `Bearer ${session?.access_token}`
         }
@@ -247,7 +307,7 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
         }
       });
 
-      const response = await axios.get(`/api/s123/photos-by-ca/${caCode}?${params}`, {
+      const response = await axios.get(`${API_BASE}/api/s123/photos-by-ca/${caCode}?${params}`, {
         headers: {
           Authorization: `Bearer ${session?.access_token}`
         }
@@ -298,7 +358,7 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
     gid: photo.gid,
     globalid: photo.gid,
     layerId: photo.layerId || 1, // Layer de origen: 1=Descripcion, 2=Hechos
-    url: `/api/s123/direct/photo/${caCode}/${photo.gid}/${encodeURIComponent(photo.filename)}?token=${session?.access_token || ''}`,
+    url: `${API_BASE}/api/s123/direct/photo/${caCode}/${photo.gid}/${encodeURIComponent(photo.filename)}?token=${session?.access_token || ''}`,
     
     // Metadata
     componente: photo.metadata?.componente || '',
@@ -636,7 +696,7 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
               >
                 {/* Thumbnail */}
                 <img
-                  src={`/api/s123/direct/photo/${caCode}/${photo.gid}/${photo.filename}?token=${session?.access_token || ''}`}
+                  src={`${API_BASE}/api/s123/direct/photo/${caCode}/${photo.gid}/${photo.filename}?token=${session?.access_token || ''}`}
                   alt={`Foto de ${photo.metadata?.componente || 'componente'}`}
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -697,16 +757,16 @@ export default function PhotoSidebar({ caCode, initialFilters = null, onClose, o
         currentIndex={selectedPhotoIndex}
         onNavigate={navigatePhotoModal}
         descripcionesEditadas={descripcionesEditadas}
-        metadataEditadas={{}}
+        metadataEditadas={metadataEditadas}
         annotations={photoAnnotations}
         onAnnotationsChange={handleAnnotationsChange}
         onDescripcionChange={handleDescripcionChange}
         onGuardarDescripcion={guardarDescripcion}
         onRevertDescripcion={revertirDescripcion}
-        onMetadataChange={() => {}}
-        onGuardarMetadata={() => {}}
+        onMetadataChange={handleMetadataChange}
+        onGuardarMetadata={guardarMetadata}
         savingDescripcion={savingDescripcion}
-        savingMetadata={null}
+        savingMetadata={savingMetadata}
       />
     </div>
   );

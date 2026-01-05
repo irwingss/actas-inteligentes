@@ -7,6 +7,8 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
+const API_BASE = 'http://localhost:3000';
+
 export function useChatAI(initialCaCode = null, onAction = null, initialMode = 'ca') {
   const { session } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -45,7 +47,7 @@ export function useChatAI(initialCaCode = null, onAction = null, initialMode = '
       console.log('[useChatAI] 🔍 Cargando CAs disponibles...');
 
       // 1. Obtener CAs asignados al usuario
-      const casResponse = await axios.get('/api/auth/accessible-cas', {
+      const casResponse = await axios.get(`${API_BASE}/api/auth/accessible-cas`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -55,7 +57,7 @@ export function useChatAI(initialCaCode = null, onAction = null, initialMode = '
       console.log('[useChatAI] 📋 Permisos:', { hasAllAccess, accessibleCAsCount: accessibleCAs.length });
 
       // 2. Obtener estadísticas de CAs descargados
-      const statsResponse = await axios.get('/api/s123/ca-stats', {
+      const statsResponse = await axios.get(`${API_BASE}/api/s123/ca-stats`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }
@@ -118,7 +120,7 @@ export function useChatAI(initialCaCode = null, onAction = null, initialMode = '
     if (!caCode) return;
 
     try {
-      const response = await axios.get(`/api/chat/context/${caCode}`, {
+      const response = await axios.get(`${API_BASE}/api/chat/context/${caCode}`, {
         headers: {
           Authorization: `Bearer ${session?.access_token}`
         }
@@ -190,7 +192,7 @@ Puedo apoyarte con:
       if (ragActive && selectedRAGStore) {
         // Modo RAG: búsqueda semántica en documentos
         console.log('[useChatAI] 📚 Enviando mensaje RAG con store:', selectedRAGStore.name);
-        response = await axios.post('/api/chat/rag', {
+        response = await axios.post(`${API_BASE}/api/chat/rag`, {
           message: userMessage.content,
           fileSearchStoreName: selectedRAGStore.name,
           caCode: selectedCA || null, // Opcional: contexto del CA
@@ -202,7 +204,7 @@ Puedo apoyarte con:
         });
       } else if (mode === 'normativa') {
         // Modo "Buscar en internet": búsqueda web para normativas/leyes/OEFA/MINAM
-        response = await axios.post('/api/chat/normativa', {
+        response = await axios.post(`${API_BASE}/api/chat/normativa`, {
           message: userMessage.content,
           history
         }, {
@@ -212,7 +214,7 @@ Puedo apoyarte con:
         });
       } else {
         // Modo CA: comportamiento existente
-        response = await axios.post('/api/chat/message', {
+        response = await axios.post(`${API_BASE}/api/chat/message`, {
           caCode: selectedCA,
           message: userMessage.content,
           history
@@ -272,7 +274,7 @@ Puedo apoyarte con:
     setMessages(prev => [...prev, loadingMessage]);
 
     try {
-      const response = await axios.post('/api/chat/summary', { caCode: selectedCA }, {
+      const response = await axios.post(`${API_BASE}/api/chat/summary`, { caCode: selectedCA }, {
         headers: {
           Authorization: `Bearer ${session?.access_token}`
         }
@@ -344,7 +346,7 @@ Puedo apoyarte con:
 
       if (mode === 'normativa') {
         // Modo "Buscar en internet": enviar fotos + búsqueda web para normativas/leyes/OEFA
-        response = await axios.post('/api/chat/normativa', {
+        response = await axios.post(`${API_BASE}/api/chat/normativa`, {
           caCode: selectedCA,
           message: finalMessage,
           photos: photosToSend,
@@ -356,7 +358,7 @@ Puedo apoyarte con:
         });
       } else {
         // Modo CA: endpoint específico para fotos con herramientas de DB
-        response = await axios.post('/api/chat/message-with-photos', {
+        response = await axios.post(`${API_BASE}/api/chat/message-with-photos`, {
           caCode: selectedCA,
           message: finalMessage,
           photos: photosToSend,

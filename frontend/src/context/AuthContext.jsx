@@ -38,6 +38,22 @@ export const AuthProvider = ({ children }) => {
     }
   }, [API_URL]);
 
+  // Sincronizar Unidades Fiscalizables desde Supabase al SQLite local
+  const syncUnidadesFiscalizables = useCallback(async (token) => {
+    try {
+      console.log('[AuthContext] Sincronizando Unidades Fiscalizables desde Supabase...');
+      const response = await api.post(`${API_URL}/api/uf/sync-from-supabase`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data?.stats?.synced > 0) {
+        console.log(`[AuthContext] UF sincronizadas: ${response.data.stats.synced} registros`);
+      }
+    } catch (error) {
+      // Silenciar - no es crítico, los usuarios usarán datos locales existentes
+      console.warn('[AuthContext] No se pudieron sincronizar UF:', error.message);
+    }
+  }, [API_URL]);
+
   // Cargar templates de anexos desde Supabase
   const fetchAnexosTemplates = useCallback(async (token) => {
     try {
@@ -82,8 +98,9 @@ export const AuthProvider = ({ children }) => {
       });
       setAccessibleCAs(casResponse.data);
 
-      // Sincronizar configuración AI y cargar anexos (no bloquear)
+      // Sincronizar configuración AI, UF y cargar anexos (no bloquear)
       syncAIConfig(token);
+      syncUnidadesFiscalizables(token);
       fetchAnexosTemplates(token);
     } catch (error) {
       // Token inválido o expirado - limpiar estado
@@ -99,7 +116,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       setAuthChecked(true);
     }
-  }, [API_URL, syncAIConfig, fetchAnexosTemplates]);
+  }, [API_URL, syncAIConfig, syncUnidadesFiscalizables, fetchAnexosTemplates]);
 
   // Initialize session - solo una vez
   useEffect(() => {
@@ -206,8 +223,9 @@ export const AuthProvider = ({ children }) => {
           // No crítico
         }
         
-        // Sincronizar config AI y cargar anexos (no bloquear)
+        // Sincronizar config AI, UF y cargar anexos (no bloquear)
         syncAIConfig(backendSession.access_token);
+        syncUnidadesFiscalizables(backendSession.access_token);
         fetchAnexosTemplates(backendSession.access_token);
       }
       

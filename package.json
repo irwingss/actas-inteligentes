@@ -1,6 +1,6 @@
 {
   "name": "actas-inteligentes",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "Actas Inteligentes: Aplicación para generar actas de supervisión ambiental",
   "private": true,
   "type": "module",
@@ -34,6 +34,7 @@
   "build": {
     "appId": "com.oefa.actas-inteligentes",
     "productName": "Actas Inteligentes",
+    "icon": "logo.ico",
     "directories": {
       "output": "dist"
     },
@@ -54,6 +55,7 @@
       }
     ],
     "win": {
+      "icon": "logo.ico",
       "target": [
         "nsis"
       ]

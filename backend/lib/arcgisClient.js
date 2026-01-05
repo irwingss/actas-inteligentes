@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { getQueryFieldNames, getAllFieldNames } from '../config/fieldMapping.js';
 import configService from '../services/configService.js';
+import { getBaseStoragePath } from './paths.js';
 
 // Centralized HTTP client with sane defaults to avoid indefinite hangs
 const HTTP_TIMEOUT_MS = parseInt(process.env.HTTP_TIMEOUT_MS || '30000', 10);
@@ -356,7 +357,8 @@ async function downloadAttachment(layerId, oid, attachmentId, destDir) {
 }
 
 async function logDebug(msg) {
-  const logPath = path.join(process.cwd(), 'debug_arcgis.log');
+  // Usar ruta centralizada para logs de debug
+  const logPath = path.join(getBaseStoragePath(), 'debug_arcgis.log');
   const time = new Date().toISOString();
   fs.appendFileSync(logPath, `[${time}] ${msg}\n`);
 }

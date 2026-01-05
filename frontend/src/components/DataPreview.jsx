@@ -4,6 +4,8 @@ import api from '../lib/axios'
 import { ChevronDown, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Search, Eye, EyeOff, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
+const API_BASE = 'http://localhost:3000'
+
 // Column display name mappings
 const COLUMN_DISPLAY_NAMES = {
   // Tabla 0 - Main record fields
@@ -417,7 +419,7 @@ export const DataPreview = ({ jobId, refreshKey = 0, filteredCounts = null, page
                                         const childOid = getOid(child)
                                         // Match by OID AND Layer ID (1)
                                         const photo = r._photos?.find(p => p.objectid === childOid && p.layer_id === 1)
-                                        const photoUrl = photo && token ? `/api/s123/direct/photo/${r.codigo_accion || r.otro_ca}/${r.globalid}/${encodeURIComponent(photo.filename)}?token=${token}` : null
+                                        const photoUrl = photo && token ? `${API_BASE}/api/s123/direct/photo/${r.codigo_accion || r.otro_ca}/${r.globalid}/${encodeURIComponent(photo.filename)}?token=${token}` : null
 
                                         return (
                                           <tr key={cIdx} className="border-t border-slate-100 dark:border-slate-700 pink:border-pink-100 hover:bg-slate-50 dark:hover:bg-slate-700/50 pink:hover:bg-pink-50">
@@ -465,7 +467,7 @@ export const DataPreview = ({ jobId, refreshKey = 0, filteredCounts = null, page
                                         const childOid = getOid(child)
                                         // Match by OID AND Layer ID (2)
                                         const photo = r._photos?.find(p => p.objectid === childOid && p.layer_id === 2)
-                                        const photoUrl = photo && token ? `/api/s123/direct/photo/${r.codigo_accion || r.otro_ca}/${r.globalid}/${encodeURIComponent(photo.filename)}?token=${token}` : null
+                                        const photoUrl = photo && token ? `${API_BASE}/api/s123/direct/photo/${r.codigo_accion || r.otro_ca}/${r.globalid}/${encodeURIComponent(photo.filename)}?token=${token}` : null
 
                                         return (
                                           <tr key={cIdx} className="border-t border-slate-100 dark:border-slate-700 pink:border-pink-100 hover:bg-slate-50 dark:hover:bg-slate-700/50 pink:hover:bg-pink-50">

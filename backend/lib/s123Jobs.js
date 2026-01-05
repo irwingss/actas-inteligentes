@@ -3,17 +3,15 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { fileURLToPath } from 'url';
 import { query, run, get } from '../db/config.js';
+import { getUploadsPath } from './paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Allow override of base directory via env var when running inside packaged Electron app.
-// Fallback to project-relative path during development.
-const DEFAULT_BASE_DIR = path.join(__dirname, '..', 'uploads', 's123');
-const BASE_DIR = (process.env.S123_BASE_DIR && String(process.env.S123_BASE_DIR).trim())
-  ? String(process.env.S123_BASE_DIR).trim()
-  : DEFAULT_BASE_DIR;
+// Usar ruta centralizada que funciona tanto en dev como en producción
+const BASE_DIR = path.join(getUploadsPath(), 's123');
 if (!fs.existsSync(BASE_DIR)) fs.mkdirSync(BASE_DIR, { recursive: true });
+console.log('[s123Jobs] 📂 BASE_DIR:', BASE_DIR);
 
 // Caché en memoria para acceso rápido (se sincroniza con DB)
 const jobs = new Map();

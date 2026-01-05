@@ -117,6 +117,175 @@ const runMigrations = async () => {
       db.run(`CREATE INDEX IF NOT EXISTS idx_actas_componentes_globalid_origen ON actas_componentes(acta_id, globalid_origen)`)
     } catch (e) { /* índice ya existe */ }
     
+    // Crear tablas base si no existen (010_actas_borradores.sql)
+    try {
+      // Tabla principal de borradores
+      db.run(`CREATE TABLE IF NOT EXISTS actas_borradores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        codigo_accion TEXT NOT NULL,
+        tipo_acta TEXT DEFAULT 'regular',
+        expediente TEXT,
+        nombre_administrado TEXT,
+        ruc TEXT,
+        unidad_fiscalizable TEXT,
+        departamento TEXT,
+        provincia TEXT,
+        distrito TEXT,
+        direccion_referencia TEXT,
+        actividad_desarrollada TEXT,
+        etapa TEXT,
+        tipo_supervision TEXT,
+        orientativa TEXT,
+        estado TEXT,
+        fecha_hora_inicio TEXT,
+        fecha_hora_cierre TEXT,
+        equipos_gps_json TEXT DEFAULT '[]',
+        modalidad TEXT,
+        status TEXT DEFAULT 'draft',
+        last_section_edited TEXT,
+        completion_percentage INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        created_by TEXT
+      )`)
+      
+      // Tabla de hechos verificados
+      db.run(`CREATE TABLE IF NOT EXISTS actas_hechos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        acta_id INTEGER NOT NULL,
+        numero_hecho INTEGER NOT NULL,
+        titulo_hecho TEXT,
+        hecho_detec_original TEXT,
+        presunto_incumplimiento TEXT,
+        subsanado TEXT,
+        obligacion TEXT,
+        descripcion TEXT,
+        descripcion_original TEXT,
+        requerimiento_subsanacion TEXT,
+        info_analisis_riesgo TEXT,
+        globalid_origen TEXT,
+        nivel_riesgo TEXT,
+        justificacion_riesgo TEXT,
+        impacto_potencial TEXT,
+        medidas_mitigacion TEXT,
+        fotos_seleccionadas TEXT,
+        entorno_afectacion TEXT,
+        factor_cantidad TEXT,
+        factor_peligrosidad TEXT,
+        factor_extension TEXT,
+        factor_personas_expuestas TEXT,
+        factor_medio_afectado TEXT,
+        probabilidad_ocurrencia TEXT,
+        score_consecuencia TEXT,
+        valor_consecuencia TEXT,
+        valor_riesgo TEXT,
+        tipo_incumplimiento TEXT,
+        texto_analisis_riesgo TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        is_completed INTEGER DEFAULT 0,
+        FOREIGN KEY (acta_id) REFERENCES actas_borradores(id) ON DELETE CASCADE
+      )`)
+      
+      // Agregar columnas faltantes para bases de datos existentes
+      const hechoColumns = [
+        'nivel_riesgo', 'justificacion_riesgo', 'impacto_potencial', 'medidas_mitigacion',
+        'fotos_seleccionadas', 'entorno_afectacion', 'factor_cantidad', 'factor_peligrosidad',
+        'factor_extension', 'factor_personas_expuestas', 'factor_medio_afectado',
+        'probabilidad_ocurrencia', 'score_consecuencia', 'valor_consecuencia',
+        'valor_riesgo', 'tipo_incumplimiento', 'texto_analisis_riesgo'
+      ]
+      for (const col of hechoColumns) {
+        try {
+          db.run(`ALTER TABLE actas_hechos ADD COLUMN ${col} TEXT`)
+        } catch (e) {
+          // Columna ya existe, ignorar
+        }
+      }
+      
+      // Tabla de medios probatorios (fotos)
+      db.run(`CREATE TABLE IF NOT EXISTS actas_medios_probatorios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hecho_id INTEGER,
+        acta_id INTEGER NOT NULL,
+        numero_foto INTEGER,
+        titulo_foto TEXT,
+        subtitulo_foto TEXT,
+        descripcion TEXT,
+        descripcion_original TEXT,
+        este REAL,
+        norte REAL,
+        altitud REAL,
+        zona TEXT,
+        datum TEXT DEFAULT 'WGS 84',
+        photo_id INTEGER,
+        photo_globalid TEXT,
+        photo_filename TEXT,
+        photo_local_path TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (hecho_id) REFERENCES actas_hechos(id) ON DELETE CASCADE,
+        FOREIGN KEY (acta_id) REFERENCES actas_borradores(id) ON DELETE CASCADE
+      )`)
+      
+      // Tabla de componentes supervisados
+      db.run(`CREATE TABLE IF NOT EXISTS actas_componentes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        acta_id INTEGER NOT NULL,
+        numero INTEGER NOT NULL,
+        componente TEXT NOT NULL,
+        norte REAL,
+        este REAL,
+        zona TEXT,
+        altitud REAL,
+        descripcion TEXT,
+        globalid_origen TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (acta_id) REFERENCES actas_borradores(id) ON DELETE CASCADE
+      )`)
+      
+      // Tabla de anexos
+      db.run(`CREATE TABLE IF NOT EXISTS actas_anexos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        acta_id INTEGER NOT NULL,
+        numero INTEGER NOT NULL,
+        descripcion TEXT NOT NULL,
+        tipo TEXT,
+        folios TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (acta_id) REFERENCES actas_borradores(id) ON DELETE CASCADE
+      )`)
+      
+      // Crear vista para resumen de borradores
+      db.run(`DROP VIEW IF EXISTS actas_borradores_resumen`)
+      db.run(`CREATE VIEW actas_borradores_resumen AS
+        SELECT 
+          ab.id,
+          ab.codigo_accion,
+          ab.tipo_acta,
+          ab.expediente,
+          ab.nombre_administrado,
+          ab.status,
+          ab.completion_percentage,
+          ab.created_at,
+          ab.updated_at,
+          ab.created_by,
+          COUNT(DISTINCT ah.id) as total_hechos,
+          COUNT(DISTINCT amp.id) as total_fotos,
+          COUNT(DISTINCT ac.id) as total_componentes
+        FROM actas_borradores ab
+        LEFT JOIN actas_hechos ah ON ab.id = ah.acta_id
+        LEFT JOIN actas_medios_probatorios amp ON ab.id = amp.acta_id
+        LEFT JOIN actas_componentes ac ON ab.id = ac.acta_id
+        GROUP BY ab.id
+      `)
+      console.log('[actas] ✅ Tablas y vista de borradores creadas')
+    } catch (e) {
+      console.warn('[actas] ⚠️  Error creando tablas de borradores:', e.message)
+    }
+    
     console.log('[actas] ✅ Migraciones completadas')
   } catch (e) {
     console.warn('[actas] ⚠️  Error en migraciones:', e.message)
@@ -286,6 +455,9 @@ router.put('/borradores/:id', async (req, res) => {
     
     const equipos_gps_json = equipos_gps ? JSON.stringify(equipos_gps) : null
     
+    // Helper: SQLite no acepta undefined, solo null
+    const toNull = (v) => v === undefined ? null : v
+    
     await run(`
       UPDATE actas_borradores SET
         expediente = COALESCE(?, expediente),
@@ -309,25 +481,25 @@ router.put('/borradores/:id', async (req, res) => {
         completion_percentage = COALESCE(?, completion_percentage)
       WHERE id = ?
     `, [
-      expediente,
-      nombre_administrado,
-      ruc,
-      unidad_fiscalizable,
-      departamento,
-      provincia,
-      distrito,
-      direccion_referencia,
-      actividad_desarrollada,
-      etapa,
-      tipo_supervision,
-      orientativa,
-      estado,
-      fecha_hora_inicio,
-      fecha_hora_cierre,
-      equipos_gps_json,
-      status,
-      last_section_edited,
-      completion_percentage,
+      toNull(expediente),
+      toNull(nombre_administrado),
+      toNull(ruc),
+      toNull(unidad_fiscalizable),
+      toNull(departamento),
+      toNull(provincia),
+      toNull(distrito),
+      toNull(direccion_referencia),
+      toNull(actividad_desarrollada),
+      toNull(etapa),
+      toNull(tipo_supervision),
+      toNull(orientativa),
+      toNull(estado),
+      toNull(fecha_hora_inicio),
+      toNull(fecha_hora_cierre),
+      toNull(equipos_gps_json),
+      toNull(status),
+      toNull(last_section_edited),
+      toNull(completion_percentage),
       id
     ])
     
@@ -424,6 +596,9 @@ router.post('/:actaId/hechos', async (req, res) => {
     const obligacionFinal = obligacion_fiscalizable || obligacion
     const descripcionFinal = descripcion_hecho || descripcion
     
+    // Helper: SQLite no acepta undefined, solo null
+    const toNull = (v) => v === undefined ? null : v
+    
     const maxResult = await get(`SELECT COALESCE(MAX(numero_hecho), 0) as max FROM actas_hechos WHERE acta_id = ?`, [actaId])
     const numero_hecho = (maxResult.rows[0]?.max || 0) + 1
     
@@ -440,15 +615,15 @@ router.post('/:actaId/hechos', async (req, res) => {
         texto_analisis_riesgo
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      actaId, numero_hecho, titulo_hecho, hecho_detec_original,
-      presunto_incumplimiento, subsanado, obligacionFinal, descripcionFinal,
-      descripcion_original, requerimiento_subsanacion, info_analisis_riesgo,
-      globalid_origen, nivel_riesgo, justificacion_riesgo, impacto_potencial,
-      medidas_mitigacion, fotos_seleccionadas,
-      entorno_afectacion, factor_cantidad, factor_peligrosidad, factor_extension,
-      factor_personas_expuestas, factor_medio_afectado, probabilidad_ocurrencia,
-      score_consecuencia, valor_consecuencia, valor_riesgo, tipo_incumplimiento,
-      texto_analisis_riesgo
+      actaId, numero_hecho, toNull(titulo_hecho), toNull(hecho_detec_original),
+      toNull(presunto_incumplimiento), toNull(subsanado), toNull(obligacionFinal), toNull(descripcionFinal),
+      toNull(descripcion_original), toNull(requerimiento_subsanacion), toNull(info_analisis_riesgo),
+      toNull(globalid_origen), toNull(nivel_riesgo), toNull(justificacion_riesgo), toNull(impacto_potencial),
+      toNull(medidas_mitigacion), toNull(fotos_seleccionadas),
+      toNull(entorno_afectacion), toNull(factor_cantidad), toNull(factor_peligrosidad), toNull(factor_extension),
+      toNull(factor_personas_expuestas), toNull(factor_medio_afectado), toNull(probabilidad_ocurrencia),
+      toNull(score_consecuencia), toNull(valor_consecuencia), toNull(valor_riesgo), toNull(tipo_incumplimiento),
+      toNull(texto_analisis_riesgo)
     ])
     
     const hechoResult = await get(`SELECT * FROM actas_hechos WHERE id = ?`, [result.lastInsertRowid])
@@ -631,6 +806,9 @@ router.post('/:actaId/hechos/:hechoId/medios', async (req, res) => {
       photo_id, photo_globalid, photo_filename, photo_local_path
     } = req.body
     
+    // Helper: SQLite no acepta undefined, solo null
+    const toNull = (v) => v === undefined ? null : v
+    
     const maxResult = await get(`SELECT COALESCE(MAX(numero_foto), 0) as max FROM actas_medios_probatorios WHERE hecho_id = ?`, [hechoId])
     const numero_foto = (maxResult.rows[0]?.max || 0) + 1
     
@@ -641,9 +819,9 @@ router.post('/:actaId/hechos/:hechoId/medios', async (req, res) => {
         photo_id, photo_globalid, photo_filename, photo_local_path
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      hechoId, actaId, numero_foto, titulo_foto, subtitulo_foto,
-      descripcion, descripcion_original, este, norte, altitud, zona, datum || 'WGS 84',
-      photo_id, photo_globalid, photo_filename, photo_local_path
+      hechoId, actaId, numero_foto, toNull(titulo_foto), toNull(subtitulo_foto),
+      toNull(descripcion), toNull(descripcion_original), toNull(este), toNull(norte), toNull(altitud), toNull(zona), datum || 'WGS 84',
+      toNull(photo_id), toNull(photo_globalid), toNull(photo_filename), toNull(photo_local_path)
     ])
     
     const medioResult = await get(`SELECT * FROM actas_medios_probatorios WHERE id = ?`, [result.lastInsertRowid])
@@ -664,6 +842,9 @@ router.put('/:actaId/hechos/:hechoId/medios/:medioId', async (req, res) => {
     const { medioId } = req.params
     const { titulo_foto, subtitulo_foto, descripcion, este, norte, altitud, zona, datum } = req.body
     
+    // Helper: SQLite no acepta undefined, solo null
+    const toNull = (v) => v === undefined ? null : v
+    
     await run(`
       UPDATE actas_medios_probatorios SET
         titulo_foto = COALESCE(?, titulo_foto),
@@ -675,7 +856,7 @@ router.put('/:actaId/hechos/:hechoId/medios/:medioId', async (req, res) => {
         zona = COALESCE(?, zona),
         datum = COALESCE(?, datum)
       WHERE id = ?
-    `, [titulo_foto, subtitulo_foto, descripcion, este, norte, altitud, zona, datum, medioId])
+    `, [toNull(titulo_foto), toNull(subtitulo_foto), toNull(descripcion), toNull(este), toNull(norte), toNull(altitud), toNull(zona), toNull(datum), medioId])
     
     const medioResult = await get(`SELECT * FROM actas_medios_probatorios WHERE id = ?`, [medioId])
     
@@ -4003,13 +4184,16 @@ router.post('/:actaId/componentes', async (req, res) => {
       return res.status(400).json({ success: false, error: 'componente es requerido' })
     }
     
+    // Helper: SQLite no acepta undefined, solo null
+    const toNull = (v) => v === undefined ? null : v
+    
     const maxResult = await get(`SELECT COALESCE(MAX(numero), 0) as max FROM actas_componentes WHERE acta_id = ?`, [actaId])
     const numero = (maxResult.rows[0]?.max || 0) + 1
     
     const result = await run(`
       INSERT INTO actas_componentes (acta_id, numero, componente, tipo_componente, instalacion_referencia, norte, este, zona, altitud, descripcion, globalid_origen, es_marino)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [actaId, numero, componente, tipo_componente, instalacion_referencia, norte, este, zona, altitud, descripcion, globalid_origen, req.body.es_marino ? 1 : 0])
+    `, [actaId, numero, componente, toNull(tipo_componente), toNull(instalacion_referencia), toNull(norte), toNull(este), toNull(zona), toNull(altitud), toNull(descripcion), toNull(globalid_origen), req.body.es_marino ? 1 : 0])
     
     const newResult = await get(`SELECT * FROM actas_componentes WHERE id = ?`, [result.lastInsertRowid])
     
@@ -4070,6 +4254,9 @@ router.put('/:actaId/componentes/:componenteId', async (req, res) => {
     const { componenteId } = req.params
     const { numero, componente, tipo_componente, instalacion_referencia, norte, este, zona, altitud, descripcion, es_marino } = req.body
     
+    // Helper: SQLite no acepta undefined, solo null
+    const toNull = (v) => v === undefined ? null : v
+    
     await run(`
       UPDATE actas_componentes SET
         numero = COALESCE(?, numero), componente = COALESCE(?, componente),
@@ -4077,7 +4264,7 @@ router.put('/:actaId/componentes/:componenteId', async (req, res) => {
         norte = COALESCE(?, norte), este = COALESCE(?, este), zona = COALESCE(?, zona),
         altitud = COALESCE(?, altitud), descripcion = COALESCE(?, descripcion), es_marino = COALESCE(?, es_marino)
       WHERE id = ?
-    `, [numero, componente, tipo_componente, instalacion_referencia, norte, este, zona, altitud, descripcion, es_marino !== undefined ? (es_marino ? 1 : 0) : null, componenteId])
+    `, [toNull(numero), toNull(componente), toNull(tipo_componente), toNull(instalacion_referencia), toNull(norte), toNull(este), toNull(zona), toNull(altitud), toNull(descripcion), es_marino !== undefined ? (es_marino ? 1 : 0) : null, componenteId])
     
     const updatedResult = await get(`SELECT * FROM actas_componentes WHERE id = ?`, [componenteId])
     
@@ -5119,12 +5306,30 @@ router.post('/borradores/:id/generate-word', async (req, res) => {
           const fotosSeleccionadas = JSON.parse(hecho.fotos_seleccionadas)
           const fotosConImagenes = []
           
+          console.log(`[actas] 📸 Procesando ${fotosSeleccionadas.length} fotos para hecho ${hecho.id}`)
+          console.log(`[actas] 📋 fotos_seleccionadas RAW:`, JSON.stringify(fotosSeleccionadas.map(f => ({ gid: f.gid, globalid: f.globalid, filename: f.filename }))))
+          
           for (const fotoRef of fotosSeleccionadas) {
             // Obtener la imagen desde SQLite usando globalid
             const gid = fotoRef.globalid || fotoRef.gid
+            console.log(`[actas] 🔍 Buscando foto: gid=${gid}, filename=${fotoRef.filename}`)
+            
             if (gid) {
               const photos = getLocalPhotos(gid)
-              const photoRecord = photos?.find(p => p.filename === fotoRef.filename)
+              console.log(`[actas] 📊 getLocalPhotos retornó ${photos?.length || 0} fotos para gid=${gid}`)
+              
+              let photoRecord = photos?.find(p => p.filename === fotoRef.filename)
+              
+              // Si no se encuentra por filename exacto, intentar match parcial
+              if (!photoRecord && photos?.length > 0) {
+                console.log(`[actas] ⚠️ No se encontró por filename exacto, intentando match parcial...`)
+                console.log(`[actas] 📋 Filenames disponibles: ${photos.map(p => p.filename).join(', ')}`)
+                // Intentar encontrar por parte del nombre (sin path)
+                const baseFilename = fotoRef.filename?.split('/').pop()?.split('\\').pop()
+                photoRecord = photos?.find(p => p.filename === baseFilename || p.filename?.includes(baseFilename))
+              }
+              
+              console.log(`[actas] 📷 photoRecord encontrado: ${photoRecord ? 'Sí' : 'No'}, local_path: ${photoRecord?.local_path || 'N/A'}`)
               
               // Obtener datos actualizados del registro padre (incluyendo componente editado)
               const parentResult = await get(`
@@ -5174,20 +5379,25 @@ router.post('/borradores/:id/generate-word', async (req, res) => {
                     }
                     
                     // Fallback: buscar en tabla legacy (arcgis_records.photo_annotations)
+                    // Envuelto en try-catch porque la columna puede no existir
                     if (!annotations || annotations.length === 0) {
-                      const legacyAnnotationResult = await get(`
-                        SELECT photo_annotations FROM arcgis_records 
-                        WHERE globalid = ? OR UPPER(globalid) = UPPER(?)
-                      `, [gid, gid])
-                      const legacyAnnotationRecord = legacyAnnotationResult.rows[0]
-                      
-                      if (legacyAnnotationRecord?.photo_annotations) {
-                        try {
-                          annotations = JSON.parse(legacyAnnotationRecord.photo_annotations)
-                          console.log(`[actas] 🎨 Usando anotaciones legacy para foto ${fotoRef.filename}`)
-                        } catch (parseErr) {
-                          // Ignorar error de parsing
+                      try {
+                        const legacyAnnotationResult = await get(`
+                          SELECT photo_annotations FROM arcgis_records 
+                          WHERE globalid = ? OR UPPER(globalid) = UPPER(?)
+                        `, [gid, gid])
+                        const legacyAnnotationRecord = legacyAnnotationResult.rows[0]
+                        
+                        if (legacyAnnotationRecord?.photo_annotations) {
+                          try {
+                            annotations = JSON.parse(legacyAnnotationRecord.photo_annotations)
+                            console.log(`[actas] 🎨 Usando anotaciones legacy para foto ${fotoRef.filename}`)
+                          } catch (parseErr) {
+                            // Ignorar error de parsing
+                          }
                         }
+                      } catch (legacyErr) {
+                        // Columna photo_annotations no existe, ignorar
                       }
                     }
                     

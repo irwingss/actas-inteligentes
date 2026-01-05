@@ -7,6 +7,8 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import PhotoSidebar from '../components/PhotoSidebar';
 import RAGSidebar from '../components/RAGSidebar';
 
+const API_BASE = 'http://localhost:3000';
+
 const MAX_PHOTOS_PER_MESSAGE = 10;
 
 const TEXT_SIZES = [
@@ -378,7 +380,7 @@ export default function ChatAIPage() {
                         {msg.attachedPhotos.map((photo, i) => (
                           <img
                             key={i}
-                            src={`/api/s123/direct/photo/${selectedCA}/${photo.gid}/${photo.filename}?token=${session?.access_token}`}
+                            src={`${API_BASE}/api/s123/direct/photo/${selectedCA}/${photo.gid}/${photo.filename}?token=${session?.access_token}`}
                             alt="Foto"
                             className="w-full h-20 object-cover rounded-lg"
                           />
@@ -445,7 +447,7 @@ export default function ChatAIPage() {
                   {attachedPhotos.map((photo, i) => (
                     <div key={i} className="relative group">
                       <img
-                        src={`/api/s123/direct/photo/${selectedCA}/${photo.gid}/${photo.filename || photo.files?.[0]}?token=${session?.access_token}`}
+                        src={`${API_BASE}/api/s123/direct/photo/${selectedCA}/${photo.gid}/${photo.filename || photo.files?.[0]}?token=${session?.access_token}`}
                         alt="Adjunto"
                         className="w-20 h-20 object-cover rounded-lg border-2 border-slate-200 dark:border-slate-700 pink:border-pink-300"
                       />

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { authenticate } from '../middleware/auth.js';
 import { getLocalRecords, getLocalPhotos, getLocalCodigo, updateDescripcionEditada, getDescripciones, getDescripcionesEditadas } from '../lib/arcgisSync.js';
 import db, { query, run, get, ensureDb } from '../db/config.js';
+import { resolvePhotoPath } from '../lib/paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,12 +51,7 @@ router.get('/photo/:caCode/:gid/:filename', (req, res, next) => {
     }
 
     // Construir ruta completa
-    let fullPath;
-    if (path.isAbsolute(photo.local_path)) {
-      fullPath = photo.local_path;
-    } else {
-      fullPath = path.join(process.cwd(), 'uploads', photo.local_path);
-    }
+    const fullPath = resolvePhotoPath(photo.local_path);
 
     // Verificar que el archivo existe
     if (!fs.existsSync(fullPath)) {
@@ -338,13 +334,8 @@ router.get('/photo/:codigo/:globalId/:filename', (req, res) => {
 // Helper para servir la foto desde disco
 function servePhotoFromDisk(photo, filename, res, codigo = '', globalId = '') {
   try {
-    // Construir ruta usando process.cwd() (la que funciona)
-    let absolutePath;
-    if (path.isAbsolute(photo.local_path)) {
-      absolutePath = photo.local_path;
-    } else {
-      absolutePath = path.join(process.cwd(), 'uploads', photo.local_path);
-    }
+    // Construir ruta usando función centralizada
+    const absolutePath = resolvePhotoPath(photo.local_path);
 
     // Verificar que el archivo existe
     if (!fs.existsSync(absolutePath)) {
@@ -411,12 +402,7 @@ router.get('/test/:globalId', (req, res) => {
       totalPhotos: photos.length,
       activePhotos: photos.filter(p => p.is_deleted === 0).length,
       photos: photos.map(p => {
-        let absolutePath;
-        if (path.isAbsolute(p.local_path)) {
-          absolutePath = p.local_path;
-        } else {
-          absolutePath = path.join(process.cwd(), 'uploads', p.local_path);
-        }
+        const absolutePath = resolvePhotoPath(p.local_path);
         const fileExists = fs.existsSync(absolutePath);
         const fileSize = fileExists ? fs.statSync(absolutePath).size : 0;
 
@@ -816,17 +802,7 @@ router.get('/anotaciones/:photoId', authenticate, async (req, res) => {
     const record = result.rows[0];
 
     if (!record) {
-      const underscoreIndex = photoId.indexOf('_');
-      if (underscoreIndex !== -1) {
-        const globalid = photoId.substring(0, underscoreIndex);
-        const legacyResult = await get(`SELECT photo_annotations FROM arcgis_records WHERE globalid = ?`, [globalid]);
-        const legacyRecord = legacyResult.rows[0];
-        
-        if (legacyRecord?.photo_annotations) {
-          console.log(`[s123-direct] 📖 Usando anotaciones legacy para ${photoId}`);
-          return res.json({ success: true, photoId, anotaciones: legacyRecord.photo_annotations, legacy: true });
-        }
-      }
+      // No hay anotaciones guardadas para esta foto
       return res.json({ success: true, photoId, anotaciones: '[]' });
     }
 

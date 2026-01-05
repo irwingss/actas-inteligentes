@@ -136,7 +136,7 @@ export const HomePage = () => {
           {/* Footer Info */}
           <div className="mt-12 text-center">
             <p className="text-sm text-slate-500 dark:text-slate-400 pink:text-white">
-              Versión 1.0.0 • DSEM-CHID © 2025
+              Versión 2.0.0 • DSEM-CHID © 2025
             </p>
           </div>
         </div>

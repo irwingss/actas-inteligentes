@@ -17,6 +17,7 @@ import {
 } from '../lib/arcgisSync.js';
 import { createJob, getJob, updateJob } from '../lib/s123Jobs.js';
 import { query } from '../db/config.js';
+import { getJobPath, getUploadsPath, resolvePhotoPath } from '../lib/paths.js';
 
 const router = express.Router();
 
@@ -205,10 +206,7 @@ router.post('/fetch-cached', async (req, res) => {
         const parser = new Parser();
         const csvData = parser.parse(csvRows);
 
-        const jobDir = path.join(process.cwd(), 'uploads', 'jobs', job.id);
-        if (!fs.existsSync(jobDir)) {
-          fs.mkdirSync(jobDir, { recursive: true });
-        }
+        const jobDir = getJobPath(job.id);
 
         const csvPath = path.join(jobDir, 'data.csv');
         const originalCsvPath = path.join(jobDir, 'data_original.csv');
@@ -239,12 +237,7 @@ router.post('/fetch-cached', async (req, res) => {
             // Procesar cada foto: verificar existencia, descargar si falta, copiar/linkear
             for (const photo of activePhotos) {
               try {
-                let sourcePath;
-                if (path.isAbsolute(photo.local_path)) {
-                  sourcePath = photo.local_path;
-                } else {
-                  sourcePath = path.join(process.cwd(), 'uploads', photo.local_path);
-                }
+                const sourcePath = resolvePhotoPath(photo.local_path);
                 const destPath = path.join(gidDir, photo.filename);
 
                 console.log(`[s123-cache] 📸 Procesando foto: ${photo.filename} (OID: ${record.objectid})`);

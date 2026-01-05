@@ -448,16 +448,35 @@ export const PhotoDetailModal = ({
     })
   }, [currentAnnotations, imageLoading, imageError, imageDimensions])
 
-  // Keyboard navigation - DESACTIVAR cuando está abierta la herramienta de anotaciones
+  // Keyboard navigation - DESACTIVAR cuando está abierta la herramienta de anotaciones o editando texto
   useEffect(() => {
     if (!isOpen) return
     // Si está anotando, no aplicar atajos del visualizador
     if (isAnnotating) return
 
     const handleKeyDown = (e) => {
+      // Ignorar atajos si el usuario está escribiendo en un input o textarea
+      const activeEl = document.activeElement
+      const isTyping = activeEl && (
+        activeEl.tagName === 'INPUT' || 
+        activeEl.tagName === 'TEXTAREA' || 
+        activeEl.isContentEditable
+      )
+      
+      // Solo permitir ESC cuando está escribiendo
+      if (isTyping && e.key !== 'Escape') {
+        return
+      }
+      
       switch (e.key) {
         case 'Escape':
-          onClose()
+          // Si está editando, primero cerrar la edición
+          if (isEditingDescription || isEditingMetadata) {
+            setIsEditingDescription(false)
+            setIsEditingMetadata(false)
+          } else {
+            onClose()
+          }
           break
         case 'ArrowLeft':
           if (currentIndex > 0 && onNavigate) {
@@ -469,19 +488,6 @@ export const PhotoDetailModal = ({
             onNavigate(currentIndex + 1)
           }
           break
-        case '+':
-        case '=':
-          setZoom(z => Math.min(z + 0.25, 3))
-          break
-        case '-':
-          setZoom(z => Math.max(z - 0.25, 0.5))
-          break
-        case 'r':
-          setRotation(r => (r + 90) % 360)
-          break
-        case 'i':
-          setShowMetadata(s => !s)
-          break
         default:
           break
       }
@@ -489,7 +495,7 @@ export const PhotoDetailModal = ({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, currentIndex, fotos.length, onNavigate, isAnnotating])
+  }, [isOpen, onClose, currentIndex, fotos.length, onNavigate, isAnnotating, isEditingDescription, isEditingMetadata])
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -1089,7 +1095,7 @@ export const PhotoDetailModal = ({
 
                 {/* Keyboard shortcuts hint */}
                 <div className="text-[10px] text-slate-400 dark:text-white/30 pink:text-pink-400 text-center pt-2">
-                  ← → Navegar • + - Zoom • R Rotar • I Info • ESC Cerrar
+                  ← → Navegar • ESC Cerrar
                 </div>
               </div>
             </div>

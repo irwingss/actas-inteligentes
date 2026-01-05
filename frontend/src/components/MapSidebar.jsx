@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { X, MapPin, Layers, FileText, Calendar, User, Mountain } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
+const API_BASE = 'http://localhost:3000'
+
 /**
  * Sidebar del mapa para mostrar detalles del punto seleccionado
  * @param {object} marker - Marcador seleccionado con data.codigo_accion
@@ -241,7 +243,7 @@ export function MapSidebar({ marker, codigoAccion, onClose, onPhotoClick }) {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {photos.map((photo, idx) => {
                     const photoUrl = token
-                      ? `/api/s123/direct/photo/${codigoAccion}/${data.globalid}/${encodeURIComponent(photo.filename)}?token=${token}`
+                      ? `${API_BASE}/api/s123/direct/photo/${codigoAccion}/${data.globalid}/${encodeURIComponent(photo.filename)}?token=${token}`
                       : null;
 
                     console.log(`[MapSidebar] 📸 Foto ${idx + 1}:`, {

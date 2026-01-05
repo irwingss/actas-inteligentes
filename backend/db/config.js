@@ -36,8 +36,30 @@ const initDatabase = async () => {
   
   initPromise = (async () => {
     try {
-      // Inicializar sql.js
-      SQL = await initSqlJs()
+      // Determinar ruta del archivo WASM según el entorno
+      const getWasmPath = () => {
+        // En producción (Electron empaquetado), buscar en node_modules dentro de dist-backend
+        if (process.env.NODE_ENV === 'production') {
+          // __dirname apunta a dist-backend/db/ en el paquete
+          return path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')
+        }
+        // En desarrollo, usar la ruta estándar de node_modules
+        return path.join(__dirname, '..', '..', 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')
+      }
+      
+      const wasmPath = getWasmPath()
+      console.log(`[db] 🔧 WASM path: ${wasmPath}`)
+      console.log(`[db] 🔧 WASM exists: ${fs.existsSync(wasmPath)}`)
+      
+      // Inicializar sql.js con ruta explícita al WASM
+      SQL = await initSqlJs({
+        locateFile: (file) => {
+          if (file === 'sql-wasm.wasm') {
+            return wasmPath
+          }
+          return file
+        }
+      })
       
       // Cargar base de datos existente o crear nueva
       if (fs.existsSync(dbPath)) {
@@ -113,28 +135,62 @@ const saveDatabase = () => {
 }
 
 // Asegurar que la DB está inicializada
+// IMPORTANTE: Devuelve dbProxy para compatibilidad con better-sqlite3 API
 const ensureDb = async () => {
   if (!initialized) {
     await initDatabase()
   }
-  return db
+  // Devolver un objeto que envuelve db con métodos compatibles
+  return {
+    // Método prepare compatible con better-sqlite3
+    prepare: (sql) => {
+      return {
+        all: (...params) => {
+          const stmt = db.prepare(sql)
+          if (params.length > 0) {
+            stmt.bind(params)
+          }
+          const rows = []
+          while (stmt.step()) {
+            rows.push(stmt.getAsObject())
+          }
+          stmt.free()
+          return rows
+        },
+        get: (...params) => {
+          const stmt = db.prepare(sql)
+          if (params.length > 0) {
+            stmt.bind(params)
+          }
+          let row = null
+          if (stmt.step()) {
+            row = stmt.getAsObject()
+          }
+          stmt.free()
+          return row
+        }
+      }
+    },
+    // Método run para INSERT/UPDATE/DELETE
+    run: (sql, params = []) => {
+      if (params && params.length > 0) {
+        db.run(sql, params)
+      } else {
+        db.run(sql)
+      }
+    },
+    // Método exec para múltiples statements
+    exec: (sql) => {
+      return db.exec(sql)
+    }
+  }
 }
 
 // Función helper para queries SELECT (compatible con better-sqlite3)
 export const query = async (sql, params = []) => {
   try {
     const database = await ensureDb()
-    const stmt = database.prepare(sql)
-    if (params.length > 0) {
-      stmt.bind(params)
-    }
-    
-    const rows = []
-    while (stmt.step()) {
-      rows.push(stmt.getAsObject())
-    }
-    stmt.free()
-    
+    const rows = database.prepare(sql).all(...params)
     return { rows, rowCount: rows.length }
   } catch (error) {
     console.error('Error en query:', error)
@@ -178,17 +234,7 @@ export const run = async (sql, params = []) => {
 export const get = async (sql, params = []) => {
   try {
     const database = await ensureDb()
-    const stmt = database.prepare(sql)
-    if (params.length > 0) {
-      stmt.bind(params)
-    }
-    
-    let row = null
-    if (stmt.step()) {
-      row = stmt.getAsObject()
-    }
-    stmt.free()
-    
+    const row = database.prepare(sql).get(...params)
     return { rows: row ? [row] : [], rowCount: row ? 1 : 0 }
   } catch (error) {
     console.error('Error en get:', error)
@@ -227,46 +273,8 @@ export const close = () => {
 // (sql.js usa prepare diferente a better-sqlite3)
 export const prepare = async (sql) => {
   const database = await ensureDb()
-  return {
-    all: (...params) => {
-      const stmt = database.prepare(sql)
-      if (params.length > 0) {
-        stmt.bind(params)
-      }
-      const rows = []
-      while (stmt.step()) {
-        rows.push(stmt.getAsObject())
-      }
-      stmt.free()
-      return rows
-    },
-    run: (...params) => {
-      if (params.length > 0) {
-        database.run(sql, params)
-      } else {
-        database.run(sql)
-      }
-      saveDatabase()
-      const lastIdResult = database.exec('SELECT last_insert_rowid() as id')
-      const changesResult = database.exec('SELECT changes() as changes')
-      return {
-        lastInsertRowid: lastIdResult[0]?.values[0]?.[0] || 0,
-        changes: changesResult[0]?.values[0]?.[0] || 0
-      }
-    },
-    get: (...params) => {
-      const stmt = database.prepare(sql)
-      if (params.length > 0) {
-        stmt.bind(params)
-      }
-      let row = null
-      if (stmt.step()) {
-        row = stmt.getAsObject()
-      }
-      stmt.free()
-      return row
-    }
-  }
+  // Devolver los métodos del wrapper directamente
+  return database.prepare(sql)
 }
 
 // Inicializar al importar

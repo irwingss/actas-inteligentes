@@ -7,6 +7,9 @@ import cors from 'cors'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+// Importar módulo de paths para rutas centralizadas
+import { getUploadsPath, getBaseStoragePath } from './lib/paths.js'
+
 // IMPORTANTE: Cargar variables de entorno PRIMERO
 // Buscar .env en el directorio del server.js (backend/)
 const envPath = path.join(__dirname, '.env');
@@ -89,7 +92,10 @@ const startServer = async () => {
   app.use(express.urlencoded({ extended: true }))
 
   // Servir archivos estáticos para uploads/jobs
-  app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+  // Usar ruta centralizada que funciona tanto en dev como en producción
+  const uploadsPath = getUploadsPath();
+  console.log('[server] 📂 Sirviendo uploads desde:', uploadsPath);
+  app.use('/uploads', express.static(uploadsPath))
 
   // Servir archivos GeoJSON estáticos
   app.use('/geojson', express.static(path.join(__dirname, '../frontend/public/geojson')))

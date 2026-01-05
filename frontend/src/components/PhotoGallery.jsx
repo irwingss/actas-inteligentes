@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react'
 
+const API_BASE = 'http://localhost:3000'
+
 /**
  * Galería de fotos con slider horizontal
  * @param {string} codigoAccion - Código de acción (URL permanente)
@@ -23,7 +25,7 @@ export function PhotoGallery({ codigoAccion, globalId, onPhotoClick }) {
     console.log('[PhotoGallery] 🆕 Cargando fotos (URL permanente):', { codigoAccion, globalId })
 
     // ✅ Nuevo endpoint DIRECTO (sin jobs) - URL permanente
-    const url = `/api/s123/direct/photos/${codigoAccion}/${globalId}`;
+    const url = `${API_BASE}/api/s123/direct/photos/${codigoAccion}/${globalId}`;
     console.log('[PhotoGallery] 📡 Fetching from:', url);
 
     fetch(url, {
@@ -45,7 +47,7 @@ export function PhotoGallery({ codigoAccion, globalId, onPhotoClick }) {
         if (data.files && Array.isArray(data.files)) {
           const photosWithUrls = data.files.map(file => ({
             filename: file.name,
-            url: file.url // ✅ URL permanente: /api/s123/direct/photo/:codigo/:gid/:filename
+            url: file.url.startsWith('http') ? file.url : `${API_BASE}${file.url}` // ✅ URL permanente con base
           }))
           setPhotos(photosWithUrls)
           console.log('[PhotoGallery] ✅ Cargadas', photosWithUrls.length, 'fotos')

@@ -20,6 +20,7 @@ import { FIELD_MAPPING, findFieldInHeaders, findFieldInHeadersLoose, getQueryFie
 import { getLocalRecords, getLocalPhotos } from '../lib/arcgisSync.js';
 import { authenticate, validateCAAccess, validateCAAccessBody, validateJobAccess, validateJobAccessBody } from '../middleware/auth.js';
 import { parseDateToTimestamp } from '../lib/geminiTools.js';
+import { resolvePhotoPath } from '../lib/paths.js';
 
 const router = express.Router();
 
@@ -592,14 +593,7 @@ router.get('/photo-by-ca/:caCode/:gid/:filename', (req, res, next) => {
     }
 
     // Determinar ruta completa del archivo
-    let fullPath;
-    if (path.isAbsolute(photo.local_path)) {
-      // Ruta absoluta (nuevo formato desde storage/photos/)
-      fullPath = photo.local_path;
-    } else {
-      // Ruta relativa (legacy desde uploads/)
-      fullPath = path.join(process.cwd(), 'uploads', photo.local_path);
-    }
+    const fullPath = resolvePhotoPath(photo.local_path);
 
     // Verificar que el archivo existe
     if (!fs.existsSync(fullPath)) {

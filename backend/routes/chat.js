@@ -9,6 +9,7 @@ import { getJob } from '../lib/s123Jobs.js';
 import { getLocalRecords, getLocalPhotos } from '../lib/arcgisSync.js';
 import { generateResponse, generateResponseWithPhotos, analyzePhoto, getJobContext, generateNormativeResponse } from '../lib/geminiService.js';
 import { generateRAGResponse } from '../lib/fileSearchService.js';
+import { resolvePhotoPath } from '../lib/paths.js';
 
 const router = express.Router();
 
@@ -131,14 +132,8 @@ router.post('/normativa', async (req, res) => {
           const photoRecord = photoRecords?.find(p => p.filename === photoRef.filename);
           
           if (photoRecord && photoRecord.local_path) {
-            // Soportar rutas absolutas (nuevo) y relativas (legacy)
-            let fullPath;
-            if (path.isAbsolute(photoRecord.local_path)) {
-              fullPath = photoRecord.local_path;
-            } else {
-              const uploadsDir = path.join(process.cwd(), 'uploads');
-              fullPath = path.join(uploadsDir, photoRecord.local_path);
-            }
+            // Usar función centralizada para resolver rutas
+            const fullPath = resolvePhotoPath(photoRecord.local_path);
             
             const fs = await import('fs/promises');
             const fileBuffer = await fs.readFile(fullPath);
@@ -344,14 +339,8 @@ router.post('/message-with-photos', validateCAAccessBody, async (req, res) => {
         if (photoRecord && photoRecord.local_path) {
           console.log('[chat] 📂 Ruta local:', photoRecord.local_path);
           
-          // Soportar rutas absolutas (nuevo) y relativas (legacy)
-          let fullPath;
-          if (path.isAbsolute(photoRecord.local_path)) {
-            fullPath = photoRecord.local_path;
-          } else {
-            const uploadsDir = path.join(process.cwd(), 'uploads');
-            fullPath = path.join(uploadsDir, photoRecord.local_path);
-          }
+          // Usar función centralizada para resolver rutas
+          const fullPath = resolvePhotoPath(photoRecord.local_path);
           
           console.log('[chat] 📁 Ruta completa:', fullPath);
           

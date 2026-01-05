@@ -15,6 +15,7 @@ import { fileURLToPath } from 'url';
 import db, { query, run, get, ensureDb, saveDatabase } from '../db/config.js';
 import { getQueryFieldNames } from '../config/fieldMapping.js';
 import { queryFeatures, getOidAndGlobalIdFields, listAttachments, downloadAttachment, fetchEnrichedRecords } from './arcgisClient.js';
+import { getStoragePath } from './paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,33 @@ function extractMappedFields(attributes) {
     altitud: getAttr('altitud'),
     tipo_componente: getAttr('tipoComponente'),
     nom_pto_muestreo: getAttr('nomPtoMuestreo'),
+
+    // Campos adicionales requeridos por INSERT
+    datum: getAttr('datum'),
+    detalle_componente: getAttr('detalleComponente'),
+    numero_punto: getAttr('numeroPunto'),
+    tipo_de_reporte: getAttr('tipoDeReporte'),
+    subcomponente: getAttr('subcomponente'),
+    descripcion: getAttr('descripcion'),
+    hallazgos: getAttr('hallazgos'),
+    profundidad: getAttr('profundidad'),
+    descripcion_f01: getAttr('descripcionF01'),
+    descripcion_f02: getAttr('descripcionF02'),
+    descripcion_f03: getAttr('descripcionF03'),
+    descripcion_f04: getAttr('descripcionF04'),
+    descripcion_f05: getAttr('descripcionF05'),
+    descripcion_f06: getAttr('descripcionF06'),
+    descripcion_f07: getAttr('descripcionF07'),
+    descripcion_f08: getAttr('descripcionF08'),
+    descripcion_f09: getAttr('descripcionF09'),
+    descripcion_f10: getAttr('descripcionF10'),
+    creation_date: getAttr('creationDate'),
+    creator: getAttr('creator'),
+    edit_date: getAttr('editDate'),
+    editor: getAttr('editor'),
+    descripcion_detallada: getAttr('descripcionDetallada'),
+    hecho_detectado: getAttr('hechoDetectado'),
+    descripcion_hecho: getAttr('descripcionHecho'),
 
     // System Fields
     created_user: getAttr('createdUser'),
@@ -540,6 +568,10 @@ export async function syncRecords(codigo, options = {}) {
 
     if (onProgress) onProgress({ stage: 'completed', progress: 100 });
 
+    // IMPORTANTE: Guardar base de datos a disco después de todos los cambios
+    saveDatabase();
+    console.log(`[arcgisSync] 💾 Base de datos guardada a disco`);
+
     console.log(`[arcgisSync] ✅ Sincronización completada en ${duration}ms`);
     console.log(`[arcgisSync] 📊 Estadísticas:`, stats);
 
@@ -580,7 +612,8 @@ async function syncPhotosForRecord(database, layerId, recordOid, parentGlobalId)
 
   if (!attachments || attachments.length === 0) return;
 
-  const photosDir = path.join(__dirname, '../storage/photos');
+  // Usar ruta centralizada que funciona tanto en dev como en producción
+  const photosDir = path.join(getStoragePath(), 'photos');
   if (!fs.existsSync(photosDir)) {
     fs.mkdirSync(photosDir, { recursive: true });
   }
@@ -591,9 +624,11 @@ async function syncPhotosForRecord(database, layerId, recordOid, parentGlobalId)
 
     if (existing) {
       // Ya existe. Verificamos si el parentGlobalId coincide.
-      if (existing.record_globalid !== parentGlobalId) {
-        console.log(`[arcgisSync] ⚠️  Actualizando parentGlobalId para foto ${att.id} (Layer ${layerId}): ${existing.record_globalid} -> ${parentGlobalId}`);
-        database.run('UPDATE arcgis_photos SET record_globalid = ?, synced_at = datetime(\'now\') WHERE id = ?', [parentGlobalId, existing.id]);
+      // Normalizar undefined a null para comparación y SQLite
+      const existingGlobalId = existing.record_globalid ?? null;
+      if (existingGlobalId !== parentGlobalId) {
+        console.log(`[arcgisSync] ⚠️  Actualizando parentGlobalId para foto ${att.id} (Layer ${layerId}): ${existingGlobalId} -> ${parentGlobalId}`);
+        database.run('UPDATE arcgis_photos SET record_globalid = ?, synced_at = datetime(\'now\') WHERE id = ?', [parentGlobalId ?? null, existing.id]);
       }
       continue;
     }

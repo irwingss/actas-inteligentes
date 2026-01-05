@@ -164,20 +164,28 @@ export const InformacionGeneralSection = ({ borrador, onSave, saving, modalidad,
   
   // Seleccionar una Unidad Fiscalizable y autocompletar campos
   const handleSelectUF = (uf) => {
-    // Construir la actividad desarrollada
-    const actividadDesarrollada = uf.competencia 
-      ? `Extracción de ${uf.competencia}`
-      : ''
+    // Construir la actividad desarrollada basada en competencia y actividad
+    let actividadDesarrollada = ''
+    if (uf.actividad) {
+      actividadDesarrollada = uf.actividad
+      if (uf.competencia) {
+        actividadDesarrollada += ` - ${uf.competencia}`
+      }
+    } else if (uf.competencia) {
+      actividadDesarrollada = `Extracción de ${uf.competencia}`
+    }
     
     setFormData(prev => ({
       ...prev,
       unidad_fiscalizable: uf.unidad_fiscalizable || '',
       nombre_administrado: uf.razon_social || prev.nombre_administrado,
       ruc: uf.ruc || prev.ruc,
+      // Usar ubicación de ejecución para el acta (donde se realiza la actividad)
       departamento: uf.dpto_ejecucion || prev.departamento,
       provincia: uf.prov_ejecucion || prev.provincia,
       distrito: uf.dist_ejecucion || prev.distrito,
-      direccion_referencia: uf.direccion_ref || prev.direccion_referencia,
+      // Usar dirección fiscal como referencia
+      direccion_referencia: uf.direccion || prev.direccion_referencia,
       actividad_desarrollada: actividadDesarrollada || prev.actividad_desarrollada,
     }))
     

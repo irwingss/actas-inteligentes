@@ -52,13 +52,18 @@ function startBackend() {
   logLine(`[backend] starting: ${serverJs}`);
 
   // Run backend using Electron's embedded Node runtime
+  // Asegurar que APPDATA esté disponible para que el backend use la ruta correcta de almacenamiento
+  const appDataPath = app.getPath('appData');
+  logLine(`[backend] APPDATA path: ${appDataPath}`);
+  
   backendProcess = spawn(process.execPath, [serverJs], {
     cwd: backendDir,
     env: {
       ...process.env,
       NODE_ENV: 'production',
       PORT: process.env.PORT || '3000',
-      ELECTRON_RUN_AS_NODE: '1'
+      ELECTRON_RUN_AS_NODE: '1',
+      APPDATA: appDataPath // Asegurar que APPDATA esté disponible para paths.js
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true
@@ -94,6 +99,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 600,
     show: false,
+    icon: path.join(__dirname, '..', 'logo.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
