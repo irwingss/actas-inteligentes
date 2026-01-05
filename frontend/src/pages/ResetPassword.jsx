@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../hooks/useDarkMode';
@@ -11,18 +11,144 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isValidToken, setIsValidToken] = useState(false);
+  const [checkingToken, setCheckingToken] = useState(true);
   const [theme, cycleTheme] = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Verificar si hay un token de recuperación válido
+  // Función para procesar tokens del hash
+  const processHashTokens = async (hash) => {
+    if (!hash) return false;
+    
+    // Parsear los parámetros del hash
+    const hashParams = new URLSearchParams(hash.replace('#', ''));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    const type = hashParams.get('type');
+    
+    console.log('[ResetPassword] Processing tokens, type:', type);
+    
+    if (accessToken && type === 'recovery') {
+      try {
+        // Establecer la sesión con los tokens de recuperación
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        
+        if (error) {
+          console.error('[ResetPassword] Error setting session:', error);
+          setError('El enlace de recuperación ha expirado o es inválido. Por favor, solicita uno nuevo.');
+          return false;
+        }
+        
+        console.log('[ResetPassword] Session established for password recovery');
+        return true;
+      } catch (err) {
+        console.error('[ResetPassword] Exception:', err);
+        setError('Error al procesar el enlace de recuperación.');
+        return false;
+      }
+    }
+    return false;
+  };
+
+  // Verificar tokens al cargar
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    const checkTokens = async () => {
+      setCheckingToken(true);
+      
+      // 1. Verificar si hay hash desde el state de navegación (deep link procesado por DeepLinkHandler)
+      if (location.state?.tokenHash) {
+        console.log('[ResetPassword] Token hash from navigation state:', location.state.tokenHash);
+        const valid = await processHashTokens(location.state.tokenHash);
+        if (valid) {
+          setIsValidToken(true);
+          setCheckingToken(false);
+          return;
+        }
+      }
+      
+      // 2. Verificar si hay hash en la URL actual (para web o deep link directo)
+      // En HashRouter, el hash real de tokens puede estar después de la ruta
+      const fullHash = window.location.hash;
+      const tokenHashMatch = fullHash.match(/#\/reset-password(#.+)/);
+      const tokenHash = tokenHashMatch ? tokenHashMatch[1] : location.hash;
+      
+      if (tokenHash && tokenHash.includes('access_token')) {
+        console.log('[ResetPassword] Token hash from URL:', tokenHash);
+        const valid = await processHashTokens(tokenHash);
+        if (valid) {
+          setIsValidToken(true);
+          setCheckingToken(false);
+          return;
+        }
+      }
+      
+      // 3. Verificar si hay un deep link pendiente (para Electron)
+      if (window.actas?.getPendingDeepLink) {
+        try {
+          const pendingLink = await window.actas.getPendingDeepLink();
+          if (pendingLink) {
+            console.log('[ResetPassword] Pending deep link:', pendingLink);
+            const hashIndex = pendingLink.indexOf('#');
+            if (hashIndex !== -1) {
+              const hash = pendingLink.substring(hashIndex);
+              const valid = await processHashTokens(hash);
+              if (valid) {
+                setIsValidToken(true);
+                setCheckingToken(false);
+                return;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[ResetPassword] Error getting pending deep link:', err);
+        }
+      }
+      
+      // 4. Verificar si ya hay una sesión de recuperación activa
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsValidToken(true);
+      }
+      
+      setCheckingToken(false);
+    };
+    
+    checkTokens();
+    
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[ResetPassword] Auth event:', event);
       if (event === 'PASSWORD_RECOVERY') {
-        // Usuario llegó desde el enlace de recuperación
-        console.log('Password recovery mode activated');
+        setIsValidToken(true);
+        setCheckingToken(false);
       }
     });
-  }, []);
+    
+    // Escuchar deep links en Electron (si la app ya está abierta)
+    if (window.actas?.onDeepLink) {
+      window.actas.onDeepLink(async (data) => {
+        console.log('[ResetPassword] Deep link received:', data);
+        if (data.path === 'reset-password' && data.hash) {
+          const valid = await processHashTokens(data.hash);
+          if (valid) {
+            setIsValidToken(true);
+            setCheckingToken(false);
+          }
+        }
+      });
+    }
+    
+    return () => {
+      subscription?.unsubscribe();
+      if (window.actas?.removeDeepLinkListener) {
+        window.actas.removeDeepLinkListener();
+      }
+    };
+  }, [location.hash, location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -90,8 +216,31 @@ export default function ResetPassword() {
 
         {/* Reset Form Card */}
         <div className="bg-white dark:bg-slate-800 pink:bg-white/95 rounded-2xl border-2 border-slate-200 dark:border-slate-700 pink:border-pink-200 p-8 shadow-xl">
-          {/* Success Message */}
-          {success ? (
+          {/* Loading Token Check */}
+          {checkingToken ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-12 h-12 animate-spin theme-color-primary mx-auto mb-4" />
+              <p className="text-sm theme-text-muted">
+                Verificando enlace de recuperación...
+              </p>
+            </div>
+          ) : !isValidToken && !success ? (
+            <div className="theme-bg-warning theme-border-warning border-2 rounded-xl p-6 text-center">
+              <AlertCircle className="w-16 h-16 theme-color-warning mx-auto mb-4" />
+              <h3 className="text-xl font-bold theme-text-warning mb-2">
+                Enlace inválido o expirado
+              </h3>
+              <p className="text-sm theme-text-muted mb-4">
+                {error || 'El enlace de recuperación ha expirado o es inválido. Por favor, solicita uno nuevo desde la página de inicio de sesión.'}
+              </p>
+              <button
+                onClick={() => navigate('/login')}
+                className="px-6 py-2 rounded-xl theme-gradient-btn text-white font-bold transition-all"
+              >
+                Volver al login
+              </button>
+            </div>
+          ) : success ? (
             <div className="theme-bg-success theme-border-success border-2 rounded-xl p-6 text-center">
               <CheckCircle className="w-16 h-16 theme-color-success mx-auto mb-4" />
               <h3 className="text-xl font-bold theme-text-success mb-2">

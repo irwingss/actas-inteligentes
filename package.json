@@ -54,6 +54,12 @@
         "to": "frontend/dist"
       }
     ],
+    "protocols": [
+      {
+        "name": "Actas Inteligentes",
+        "schemes": ["actas-inteligentes"]
+      }
+    ],
     "win": {
       "icon": "logo.ico",
       "target": [

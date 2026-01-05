@@ -100,6 +100,112 @@ const startServer = async () => {
   // Servir archivos GeoJSON estáticos
   app.use('/geojson', express.static(path.join(__dirname, '../frontend/public/geojson')))
 
+  // Deep Link Redirect para Supabase Auth
+  // Cuando Supabase redirige a localhost:3000/#access_token=...
+  // Servimos una página que redirige al protocolo de la app
+  app.get('/', (req, res) => {
+    // Servir página HTML que detecta tokens en el hash y redirige al deep link
+    res.send(`
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirigiendo a Actas Inteligentes...</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #f1f5f9;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 1rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(34, 197, 94, 0.3);
+      border-top-color: #22c55e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+    p { margin: 0; opacity: 0.7; }
+    .error { color: #f87171; margin-top: 1rem; }
+    .manual-link {
+      margin-top: 1.5rem;
+      padding: 0.75rem 1.5rem;
+      background: #22c55e;
+      color: white;
+      text-decoration: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      display: none;
+    }
+    .manual-link:hover { background: #16a34a; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1>Redirigiendo a Actas Inteligentes</h1>
+    <p id="status">Procesando autenticación...</p>
+    <p id="error" class="error"></p>
+    <a id="manual-link" class="manual-link" href="#">Abrir aplicación manualmente</a>
+  </div>
+  <script>
+    (function() {
+      const hash = window.location.hash;
+      
+      if (hash && hash.includes('access_token')) {
+        // Construir deep link con el hash
+        const deepLink = 'actas-inteligentes://reset-password' + hash;
+        
+        document.getElementById('status').textContent = 'Abriendo aplicación...';
+        
+        // Mostrar link manual por si el redirect automático no funciona
+        const manualLink = document.getElementById('manual-link');
+        manualLink.href = deepLink;
+        
+        // Intentar abrir el deep link
+        window.location.href = deepLink;
+        
+        // Después de 2 segundos, mostrar opción manual
+        setTimeout(function() {
+          manualLink.style.display = 'inline-block';
+          document.getElementById('status').textContent = 'Si la aplicación no se abrió automáticamente:';
+        }, 2000);
+        
+        // Después de 5 segundos, mostrar instrucciones adicionales
+        setTimeout(function() {
+          document.getElementById('error').textContent = 
+            'Si sigues viendo esta página, asegúrate de tener Actas Inteligentes instalada.';
+        }, 5000);
+      } else {
+        document.getElementById('status').textContent = 'API de Actas Inteligentes';
+        document.querySelector('.spinner').style.display = 'none';
+      }
+    })();
+  </script>
+</body>
+</html>
+    `);
+  });
+
   // Health check
   app.get('/api/health', async (req, res) => {
     try {

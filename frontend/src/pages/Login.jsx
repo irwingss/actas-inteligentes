@@ -70,8 +70,15 @@ export default function Login() {
 
     try {
       const { supabase } = await import('../lib/supabase');
+      
+      // En Electron usar deep link, en web usar la URL normal
+      const isElectron = window.actas?.isElectron;
+      const redirectTo = isElectron 
+        ? 'actas-inteligentes://reset-password'
+        : `${window.location.origin}/reset-password`;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo
       });
       if (error) throw error;
       setForgotSuccess(true);

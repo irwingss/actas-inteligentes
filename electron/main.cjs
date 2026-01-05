@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -6,6 +6,19 @@ const { spawn } = require('child_process');
 let mainWindow = null;
 let backendProcess = null;
 let logStream = null;
+let pendingDeepLink = null;
+
+// Protocolo para deep links (reset password, etc.)
+const PROTOCOL_NAME = 'actas-inteligentes';
+
+// Registrar protocolo como manejador por defecto
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL_NAME, process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL_NAME);
+}
 
 function getLogStream() {
   if (logStream) return logStream;
@@ -138,18 +151,90 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-}
 
-app.whenReady().then(() => {
-  logLine(`[app] isPackaged=${app.isPackaged} ACTAS_ELECTRON_DEV=${process.env.ACTAS_ELECTRON_DEV || ''}`);
-  startBackend();
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+  // Enviar deep link pendiente cuando la ventana esté lista
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (pendingDeepLink) {
+      handleDeepLink(pendingDeepLink);
+      pendingDeepLink = null;
     }
   });
+}
+
+// Manejar deep links en Windows (segunda instancia)
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Alguien intentó ejecutar una segunda instancia, enfocar la ventana
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+    // Windows: El deep link viene en commandLine
+    const deepLink = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
+    if (deepLink) {
+      handleDeepLink(deepLink);
+    }
+  });
+
+  app.whenReady().then(() => {
+    logLine(`[app] isPackaged=${app.isPackaged} ACTAS_ELECTRON_DEV=${process.env.ACTAS_ELECTRON_DEV || ''}`);
+    startBackend();
+    createWindow();
+
+    // Windows: Verificar si se abrió con deep link
+    const deepLinkArg = process.argv.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
+    if (deepLinkArg) {
+      pendingDeepLink = deepLinkArg;
+    }
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  });
+}
+
+// macOS: Manejar deep links
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleDeepLink(url);
+});
+
+// Función para manejar deep links
+function handleDeepLink(url) {
+  logLine(`[deep-link] Received: ${url}`);
+  
+  if (!mainWindow) {
+    pendingDeepLink = url;
+    return;
+  }
+
+  // Parsear la URL del deep link
+  // Formato: actas-inteligentes://reset-password#access_token=xxx&refresh_token=xxx&type=recovery
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.hostname || urlObj.pathname.replace(/^\/\//, '');
+    const hash = urlObj.hash || '';
+    
+    logLine(`[deep-link] Path: ${path}, Hash: ${hash}`);
+    
+    // Enviar al renderer
+    mainWindow.webContents.send('deep-link', { path, hash, fullUrl: url });
+  } catch (err) {
+    logLine(`[deep-link] Error parsing URL: ${err.message}`);
+  }
+}
+
+// IPC para que el renderer solicite deep links pendientes
+ipcMain.handle('get-pending-deep-link', () => {
+  const link = pendingDeepLink;
+  pendingDeepLink = null;
+  return link;
 });
 
 app.on('before-quit', () => {
